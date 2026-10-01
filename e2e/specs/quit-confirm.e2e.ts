@@ -30,7 +30,13 @@ describe("quit confirmation", () => {
     await browser.execute(() => {
       const w = window as unknown as {
         __closeRequested?: boolean;
-        __TAURI__: { window: { getCurrentWindow: () => { onCloseRequested: (cb: (e: { preventDefault: () => void }) => void) => void } } };
+        __TAURI__: {
+          window: {
+            getCurrentWindow: () => {
+              onCloseRequested: (cb: (e: { preventDefault: () => void }) => void) => void;
+            };
+          };
+        };
       };
       w.__closeRequested = false;
       w.__TAURI__.window.getCurrentWindow().onCloseRequested((e) => {
@@ -46,8 +52,15 @@ describe("quit confirmation", () => {
 
     // quit() runs: quitOpen=false, stopLoop, save, close() -> CloseRequested
     await browser.waitUntil(
-      () => browser.execute(() => (window as unknown as { __closeRequested?: boolean }).__closeRequested === true),
-      { timeout: 10_000, timeoutMsg: "window close was never requested — close() denied by ACL or confirm path broken" },
+      () =>
+        browser.execute(
+          () => (window as unknown as { __closeRequested?: boolean }).__closeRequested === true,
+        ),
+      {
+        timeout: 10_000,
+        timeoutMsg:
+          "window close was never requested — close() denied by ACL or confirm path broken",
+      },
     );
 
     // Hand a healthy app back to the next session: undo quit()'s stopLoop
