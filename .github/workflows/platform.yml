@@ -74,9 +74,11 @@ jobs:
       - name: 安装前端依赖
         run: npm ci
 
-      # 编译检查：真打包（产出 deb/appimage、msi/nsis、dmg），逐平台证明能编译能打包。
-      - name: 编译检查（tauri build）
-        run: npm run tauri build
+      # 编译检查：release profile 真编译，--no-bundle 跳过 installer 打包。
+      # 打包（msi/dmg）验证挪到 release 流水线：计划 §6.3 的第一缩量开关，
+      # 当前阻塞行的 light.exe / bundle_dmg.sh 在托管 runner 上不可靠。
+      - name: 编译检查（release 编译，不打包）
+        run: npm run tauri -- build --no-bundle
 
       # e2e 驱动的是 debug 二进制（WebDriver 插件按 debug_assertions 门控），不打包。
       - name: 构建 e2e 目标
@@ -85,7 +87,8 @@ jobs:
 
       - name: e2e（Linux，虚拟显示）
         if: matrix.e2e && startsWith(matrix.os, 'ubuntu')
-        run: xvfb-run -a npm run test:e2e
+        # 显式 1280x800x24：窗口按此尺寸全屏，避免依赖 xvfb-run 默认屏幕。
+        run: xvfb-run -a --server-args="-screen 0 1280x800x24" npm run test:e2e
 
       - name: e2e（Windows / macOS）
         if: matrix.e2e && !startsWith(matrix.os, 'ubuntu')
@@ -126,8 +129,8 @@ jobs:
       - name: 安装前端依赖
         run: npm ci
 
-      - name: 编译检查（tauri build）
-        run: npm run tauri build
+      - name: 编译检查（release 编译，不打包）
+        run: npm run tauri -- build --no-bundle
 
       - name: 构建 e2e 目标
         run: npm run test:e2e:build
