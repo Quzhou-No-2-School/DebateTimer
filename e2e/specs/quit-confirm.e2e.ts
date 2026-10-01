@@ -17,6 +17,11 @@ import { wake } from "../support/app.ts";
  * it. The close-requested event can only arrive when the close IPC command
  * passed the ACL, which is exactly the behavior under test — while the
  * process stays alive and teardown stays clean.
+ *
+ * Side effect to clean up: the embedded provider reuses one app instance
+ * across sessions, and quit() has already stopped the RAF loop by the time
+ * we prevent the close (run 36874548218: the following timing spec then saw
+ * a frozen clock). Reload the page so the next session starts hydrated.
  */
 describe("quit confirmation", () => {
   it("confirming the dialog requests the window close", async () => {
@@ -44,5 +49,10 @@ describe("quit confirmation", () => {
       () => browser.execute(() => (window as unknown as { __closeRequested?: boolean }).__closeRequested === true),
       { timeout: 10_000, timeoutMsg: "window close was never requested — close() denied by ACL or confirm path broken" },
     );
+
+    // Hand a healthy app back to the next session: undo quit()'s stopLoop
+    // by reloading (onMount restarts the loop and restores idle state).
+    await browser.refresh();
+    await expect($("main")).toBeDisplayed();
   });
 });
