@@ -7,8 +7,8 @@ import { wake } from "../support/app.ts";
  * 所以选择器必须作用域到 dialog 内部。
  * 这里**只点取消**：点确认会关掉应用，后面的用例就没得跑了。
  */
-describe("退出入口", () => {
-  it("点「退出」弹出二次确认，取消后应用仍然活着", async () => {
+describe("quit entry", () => {
+  it("cancel keeps the app alive after the confirmation dialog", async () => {
     await wake();
     await $("button=退出").click();
 

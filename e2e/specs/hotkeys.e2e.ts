@@ -7,7 +7,7 @@ import { clearPersistedState, resetToFirstStage, wake } from "../support/app.ts"
  * 输入框里的空格、回车、字母被当成快捷键，计时器被误启停。
  * 规则是"焦点在可编辑元素里时单键快捷键一律屏蔽（Esc 例外）"。
  */
-describe("输入态快捷键守卫", () => {
+describe("hotkey guard while typing", () => {
   beforeEach(async () => {
     await resetToFirstStage();
   });
@@ -17,7 +17,7 @@ describe("输入态快捷键守卫", () => {
     await clearPersistedState();
   });
 
-  it("焦点在辩题输入框里时按空格不会误启动计时", async () => {
+  it("space with focus in the topic input does not start the timer", async () => {
     await browser.keys(["t"]); // 快捷键 T 打开辩题编辑
     const input = $("input");
     await input.waitForDisplayed();
@@ -37,7 +37,7 @@ describe("输入态快捷键守卫", () => {
     await expect($("input")).not.toExist();
   });
 
-  it("辩题可以编辑并提交", async () => {
+  it("topic can be edited and submitted", async () => {
     await browser.keys(["t"]);
     const input = $("input");
     await input.waitForDisplayed();
