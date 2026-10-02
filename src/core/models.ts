@@ -1,11 +1,11 @@
 /** 领域模型：纯类型 + 纯函数，零框架、零 Tauri 依赖。 */
 
-export type Side = 'pro' | 'con' | 'neutral';
+export type Side = "pro" | "con" | "neutral";
 
-export type SpeakerSide = Extract<Side, 'pro' | 'con'>;
+export type SpeakerSide = Extract<Side, "pro" | "con">;
 
 /** 提示音类型，由 core/audio.ts 合成 */
-export type PromptSound = 'short' | 'bell' | 'double';
+export type PromptSound = "short" | "bell" | "double";
 
 export interface PromptRule {
   /** 剩余多少秒时触发（0 = 时间到） */
@@ -26,9 +26,9 @@ export interface PromptRule {
  * - alternating：双边分离计时（自由辩论：双方各一块表，一方停下即切另一方）
  */
 export type TimingMode =
-  | { kind: 'single'; limitSec: number }
-  | { kind: 'split'; buckets: TimingBucket[] }
-  | { kind: 'alternating'; perSideSec: number; firstSide: SpeakerSide };
+  | { kind: "single"; limitSec: number }
+  | { kind: "split"; buckets: TimingBucket[] }
+  | { kind: "alternating"; perSideSec: number; firstSide: SpeakerSide };
 
 export interface TimingBucket {
   id: string;
@@ -46,7 +46,7 @@ export interface Stage {
   timing: TimingMode;
   prompts: PromptRule[];
   /** 时间到之后：停止计时 / 继续计超时 */
-  overtime: 'stop' | 'count';
+  overtime: "stop" | "count";
 }
 
 export interface FlowTemplate {
@@ -74,11 +74,11 @@ export interface Preferences {
 export function stageTotalSec(stage: Stage): number {
   const t = stage.timing;
   switch (t.kind) {
-    case 'single':
+    case "single":
       return t.limitSec;
-    case 'split':
+    case "split":
       return t.buckets.reduce((sum, b) => sum + b.limitSec, 0);
-    case 'alternating':
+    case "alternating":
       return t.perSideSec * 2;
   }
 }
@@ -90,9 +90,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
 };
 
 export const DEFAULT_MATCH: MatchState = {
-  topic: '辩题',
-  proName: '正方',
-  conName: '反方',
-  templateId: '',
+  topic: "辩题",
+  proName: "正方",
+  conName: "反方",
+  templateId: "",
   stageIndex: 0,
 };

@@ -22,8 +22,8 @@
   --color-warn: #d97706; /* 剩 30 秒 */
   --color-danger: #dc2626; /* 时间到 */
 
-  --font-sans: "Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC",
-    system-ui, sans-serif;
+  --font-sans:
+    "Plus Jakarta Sans", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
 }
 
 html,

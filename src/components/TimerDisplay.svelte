@@ -20,7 +20,7 @@
 </script>
 
 <div
-  class="tnum font-semibold leading-none tracking-tight transition-colors duration-200 {tone}"
+  class="tnum leading-none font-semibold tracking-tight transition-colors duration-200 {tone}"
   style="font-size: clamp(4rem, 22vh, 20rem)"
 >
   {text}

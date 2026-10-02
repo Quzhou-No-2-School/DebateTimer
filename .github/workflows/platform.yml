@@ -1,0 +1,139 @@
+name: platform
+
+# 平台矩阵：编译检查（真打包）+ 真实桌面 e2e。
+#
+# 阻塞行（每个 PR 都跑）：
+#   ubuntu-24.04  → 编译 + e2e
+#   windows-2022  → 编译 + e2e   （Windows 10 世代内核，Server 2022）
+#   macos-15      → 编译 + e2e   （arm64）
+#   windows-2025  → 仅编译        （Windows 11 世代内核，Server 2025）
+#
+# 探测行（非阻塞，只在 main 或手动触发时跑）：windows-2025 的 e2e、
+# windows-11-arm（字面 Windows 11，arm64）、macos-26。
+# 跑绿若干次后再提升为阻塞行——见 docs/plans/2026-09-22-20-测试与CI实施计划.md §2。
+#
+# 平台覆盖的诚实缺口：以上都不是 Windows 10 / 11 **消费版**桌面，
+# 测不到消费级 WebView2 版本、DPI 缩放、Defender/SmartScreen、非管理员权限运行。
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  platform:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: "ubuntu-24.04 · build+e2e", os: ubuntu-24.04, e2e: true }
+          - { label: "windows-2022 · build+e2e", os: windows-2022, e2e: true }
+          - { label: "macos-15 · build+e2e", os: macos-15, e2e: true }
+          - { label: "windows-2025 · build", os: windows-2025, e2e: false }
+    steps:
+      - uses: actions/checkout@v7
+
+      # Tauri 在 Linux 上编译需要这些开发库；xvfb 供无显示器的 e2e 使用。
+      # 注意：embedded provider 不需要 webkit2gtk-driver（那是 official provider 的事）。
+      - name: Linux system dependencies
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            build-essential curl wget file patchelf \
+            xvfb
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # 编译检查：release profile 真编译，--no-bundle 跳过 installer 打包。
+      # 打包（msi/dmg）验证挪到 release 流水线：计划 §6.3 的第一缩量开关，
+      # 当前阻塞行的 light.exe / bundle_dmg.sh 在托管 runner 上不可靠。
+      - name: Build check (release profile, no bundling)
+        run: npm run tauri -- build --no-bundle
+
+      # e2e 驱动的是 debug 二进制（WebDriver 插件按 debug_assertions 门控），不打包。
+      - name: Build e2e target
+        if: matrix.e2e
+        run: npm run test:e2e:build
+
+      - name: e2e (Linux, virtual display)
+        if: matrix.e2e && startsWith(matrix.os, 'ubuntu')
+        # 显式 1280x800x24：窗口按此尺寸全屏，避免依赖 xvfb-run 默认屏幕。
+        run: xvfb-run -a --server-args="-screen 0 1280x800x24" npm run test:e2e
+
+      - name: e2e (Windows / macOS)
+        if: matrix.e2e && !startsWith(matrix.os, 'ubuntu')
+        run: npm run test:e2e
+
+  # 非阻塞探测行：只在 main 或手动触发时跑。
+  # 注意：job 级 if 在矩阵展开之前求值，所以这里不能引用 matrix 上下文——
+  # 这也是为什么探测行要单独一个 job，而不是靠 matrix 里加个 flag。
+  platform-probe:
+    name: Probe · ${{ matrix.label }}
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: "windows-2025 · e2e", os: windows-2025 }
+          - { label: "windows-11-arm · build+e2e", os: windows-11-arm }
+          - { label: "macos-26 · e2e", os: macos-26 }
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build check (release profile, no bundling)
+        run: npm run tauri -- build --no-bundle
+
+      - name: Build e2e target
+        run: npm run test:e2e:build
+
+      - name: e2e
+        run: npm run test:e2e

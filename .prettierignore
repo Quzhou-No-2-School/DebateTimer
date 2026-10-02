@@ -1,0 +1,15 @@
+node_modules
+build
+.svelte-kit
+package-lock.json
+src-tauri/target
+src-tauri/gen
+src-tauri/Cargo.lock
+e2e/artifacts
+coverage
+
+# 以下两项是"显式意图声明"，并非真正的承重保护：Prettier 对这两种文件本来就没有解析器
+# （`prettier --file-info` 返回 `inferredParser: null`），即使不写在这里也会被跳过。
+# 保留它们是为了把"许可证文本必须逐字保留"这条约束写进配置（见 commit 5923f0d：GPL-3.0 原文完整性用于 license 检测）。
+LICENSE
+static/fonts/OFL.txt

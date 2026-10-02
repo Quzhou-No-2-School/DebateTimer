@@ -1,8 +1,8 @@
-import type { FlowTemplate, MatchState, Preferences, Stage } from './models';
-import { DEFAULT_MATCH, DEFAULT_PREFERENCES } from './models';
-import { DEFAULT_TEMPLATE_ID } from './presets';
+import type { FlowTemplate, MatchState, Preferences, Stage } from "./models";
+import { DEFAULT_MATCH, DEFAULT_PREFERENCES } from "./models";
+import { DEFAULT_TEMPLATE_ID } from "./presets";
 
-const STORAGE_KEY = 'debatetimer:v1';
+const STORAGE_KEY = "debatetimer:v1";
 
 export interface PersistedState {
   match: MatchState;
@@ -21,7 +21,7 @@ export function defaultState(): PersistedState {
 
 function safeStorage(): Storage | null {
   try {
-    return typeof localStorage === 'undefined' ? null : localStorage;
+    return typeof localStorage === "undefined" ? null : localStorage;
   } catch {
     return null;
   }
@@ -64,22 +64,22 @@ export function exportTemplate(template: FlowTemplate): string {
 /** 导入模板 JSON（用户文件，属系统边界，必须校验） */
 export function importTemplate(json: string): FlowTemplate {
   const parsed: unknown = JSON.parse(json);
-  if (!isValidTemplate(parsed)) throw new Error('模板文件格式不正确');
+  if (!isValidTemplate(parsed)) throw new Error("模板文件格式不正确");
   return parsed;
 }
 
 function isValidTemplate(value: unknown): value is FlowTemplate {
-  if (typeof value !== 'object' || value === null) return false;
+  if (typeof value !== "object" || value === null) return false;
   const t = value as Partial<FlowTemplate>;
-  if (typeof t.name !== 'string' || !Array.isArray(t.stages)) return false;
+  if (typeof t.name !== "string" || !Array.isArray(t.stages)) return false;
   return t.stages.every(isValidStage);
 }
 
 function isValidStage(value: unknown): value is Stage {
-  if (typeof value !== 'object' || value === null) return false;
+  if (typeof value !== "object" || value === null) return false;
   const s = value as Partial<Stage>;
-  if (typeof s.id !== 'string' || typeof s.name !== 'string') return false;
-  if (typeof s.timing !== 'object' || s.timing === null) return false;
+  if (typeof s.id !== "string" || typeof s.name !== "string") return false;
+  if (typeof s.timing !== "object" || s.timing === null) return false;
   if (!Array.isArray(s.prompts)) return false;
   return true;
 }

@@ -1,0 +1,60 @@
+name: quality
+
+# Linux 单机快速道：格式检查 + 类型检查 + 单元测试（前端与 Rust）。
+# 不含 tauri build，比四平台矩阵快得多。
+# 但仍需 GTK/WebKit 开发库：clippy 与 cargo test 会编译整个依赖图，
+# 其中 glib-sys / webkit2gtk-sys 在 Linux 上要 pkg-config 找到系统库。
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Format · Types · Unit Tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            build-essential curl wget file
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # 必须显式指定 toolchain 与 components：该 action 装的是 --profile minimal，
+      # 不含 rustfmt / clippy；而 rust-toolchain.toml 的隐式 auto-install 已被 rustup 标记 deprecated。
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      # workspaces 必须显式写：仓库根不是 Cargo workspace 根，默认值 . -> target 会缓存不到。
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      # verify = format:check → fmt:rust → test → check → build → lint:rust → test:rust
+      # 已按"快失败优先"排序，第一个失败即中断，日志里能直接看出是哪道门禁。
+      - name: Run all quality gates
+        run: npm run verify

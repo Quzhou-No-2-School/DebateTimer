@@ -1,4 +1,4 @@
-import type { PromptSound } from './models';
+import type { PromptSound } from "./models";
 
 /**
  * 提示音：全部用 Web Audio 实时合成，不打包任何音频文件。
@@ -8,9 +8,11 @@ import type { PromptSound } from './models';
 let ctx: AudioContext | null = null;
 
 function ensureCtx(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
   if (!ctx) {
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return null;
     ctx = new Ctor();
   }
@@ -23,7 +25,7 @@ function ensureCtx(): AudioContext | null {
  */
 export function unlockAudio(): void {
   const c = ensureCtx();
-  if (c && c.state === 'suspended') void c.resume();
+  if (c && c.state === "suspended") void c.resume();
 }
 
 interface StrikeOptions {
@@ -46,7 +48,7 @@ function strike(c: AudioContext, o: StrikeOptions): void {
   for (const p of partials) {
     const osc = c.createOscillator();
     const gain = c.createGain();
-    osc.type = 'sine';
+    osc.type = "sine";
     osc.frequency.value = o.freq * p.ratio;
 
     const peak = 0.9 * p.gain;
@@ -70,7 +72,7 @@ export interface PlayOptions {
 export function playPrompt(sound: PromptSound, opts: PlayOptions = {}): void {
   const c = ensureCtx();
   if (!c) return;
-  if (c.state === 'suspended') void c.resume();
+  if (c.state === "suspended") void c.resume();
 
   const volume = Math.min(1, Math.max(0, opts.volume ?? 0.8));
   if (volume === 0) return;
@@ -78,7 +80,7 @@ export function playPrompt(sound: PromptSound, opts: PlayOptions = {}): void {
   const repeat = Math.max(1, opts.repeat ?? 1);
   const t0 = c.currentTime + 0.02;
 
-  if (sound === 'double') {
+  if (sound === "double") {
     // 两声：一记短促双击
     for (let i = 0; i < repeat; i++) {
       const at = t0 + i * 0.45;
@@ -88,7 +90,7 @@ export function playPrompt(sound: PromptSound, opts: PlayOptions = {}): void {
     return;
   }
 
-  if (sound === 'bell') {
+  if (sound === "bell") {
     // 钟声：基频 + 两个非整数泛音，衰减更长
     for (let i = 0; i < repeat; i++) {
       strike(c, {
