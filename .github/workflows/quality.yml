@@ -19,12 +19,12 @@ concurrency:
 
 jobs:
   quality:
-    name: 格式 · 类型 · 单测
+    name: Format · Types · Unit Tests
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
-      - name: Linux 系统依赖
+      - name: Linux system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -39,7 +39,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: 安装前端依赖
+      - name: Install frontend dependencies
         run: npm ci
 
       # 必须显式指定 toolchain 与 components：该 action 装的是 --profile minimal，
@@ -56,5 +56,5 @@ jobs:
 
       # verify = format:check → fmt:rust → test → check → build → lint:rust → test:rust
       # 已按"快失败优先"排序，第一个失败即中断，日志里能直接看出是哪道门禁。
-      - name: 跑全部门禁
+      - name: Run all quality gates
         run: npm run verify
