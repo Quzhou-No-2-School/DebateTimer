@@ -62,7 +62,7 @@ jobs:
           printf '%s\n' "$FILES" | xargs npx prettier --write
 
       - name: 自动提交格式化结果
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_options: '--no-verify'
           commit_user_name: 'github-actions[bot]'
