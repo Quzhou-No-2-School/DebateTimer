@@ -1,0 +1,42 @@
+# Dependabot 版本更新：每周检查一次依赖。
+# minor+patch 分组出 PR 降低噪音；major 单独出 PR 便于审查。
+version: 2
+updates:
+  # 前端：SvelteKit + npm，manifest 在仓库根
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+      security:
+        applies-to: security-updates
+        update-types: ["patch", "minor", "major"]
+
+  # Rust：Tauri 后端，manifest 在 src-tauri
+  - package-ecosystem: "cargo"
+    directory: "/src-tauri"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+      security:
+        applies-to: security-updates
+        update-types: ["patch", "minor", "major"]
+
+  # GitHub Actions workflow 里引用的 action 版本
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types: ["minor", "patch"]
+      security:
+        applies-to: security-updates
+        update-types: ["patch", "minor", "major"]
