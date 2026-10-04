@@ -27,19 +27,19 @@
 
 ### 快捷键
 
-| 键 | 动作 |
-|---|---|
-| 空格 | 开始 / 暂停当前环节 |
-| Enter / → | 下一环节 |
-| Backspace / ← | 上一环节 |
-| R | 重置当前环节 |
-| Tab | 自由辩论切换发言方 |
-| + / − | 当前环节 ±10 秒（Shift 为 ±60 秒） |
-| 1–9 | 跳到第 N 个环节 |
-| T | 修改辩题 |
-| F11 / F | 全屏切换 |
-| H | 快捷键帮助 |
-| Esc | 关闭弹窗 / 退出编辑 |
+| 键            | 动作                               |
+| ------------- | ---------------------------------- |
+| 空格          | 开始 / 暂停当前环节                |
+| Enter / →     | 下一环节                           |
+| Backspace / ← | 上一环节                           |
+| R             | 重置当前环节                       |
+| Tab           | 自由辩论切换发言方                 |
+| + / −         | 当前环节 ±10 秒（Shift 为 ±60 秒） |
+| 1–9           | 跳到第 N 个环节                    |
+| T             | 修改辩题                           |
+| F11 / F       | 全屏切换                           |
+| H             | 快捷键帮助                         |
+| Esc           | 关闭弹窗 / 退出编辑                |
 
 ### 关于赛制时长
 
@@ -61,6 +61,42 @@ npm run tauri build   # 打包
 ```
 
 通常在哪个系统上构建就产出哪个系统的安装包（交叉编译需要额外配置 CI）。Windows 目标机器需 WebView2（Win10 1803+ 系统自带，否则需随包安装运行时）。字体已本地打包，教室无网络也能正常显示。
+
+### 测试
+
+```bash
+npm run verify        # 一条命令跑完所有本地门禁：格式 → Rust 格式 → 单测 → 类型 → 构建 → clippy → Rust 单测
+npm test              # 前端单测（Vitest）
+npm run test:e2e      # 桌面 e2e（WebdriverIO，驱动真实应用窗口）
+```
+
+e2e 走 WebdriverIO 的 **embedded provider**：WebDriver 服务跑在应用进程内，不需要外部 driver、也不需要 CrabNebula 的付费 key，Windows / macOS / Linux 同一套配置。驱动目标是 debug 二进制，`npm run test:e2e` 会在缺失时自动构建。
+
+Linux 上如果没接显示器：
+
+```bash
+xvfb-run -a npm run test:e2e
+```
+
+### CI 与平台覆盖
+
+CI 分两条：`quality` 是 Linux 单机快速道（格式 + 类型 + 单测），`platform` 是平台矩阵（编译检查 + e2e）。
+
+| CI runner        | 对应的真实环境                             | 跑什么     |
+| ---------------- | ------------------------------------------ | ---------- |
+| `ubuntu-24.04`   | Ubuntu 24.04                               | 编译 + e2e |
+| `windows-2022`   | Windows 10 世代内核（Server 2022）         | 编译 + e2e |
+| `windows-2025`   | Windows 11 世代内核（Server 2025）         | 编译       |
+| `macos-15`       | macOS 15（arm64）                          | 编译 + e2e |
+| `windows-11-arm` | 真 Windows 11（arm64，实验性，非阻塞探测） | 编译 + e2e |
+| `macos-26`       | macOS 26（非阻塞探测）                     | 编译 + e2e |
+
+**已知缺口（重要）**：GitHub 托管 runner 不提供 Windows 10 / 11 的**消费者版本**镜像，上表的 Windows 行都是 Server SKU。因此以下项目仍需在真机上手工验收：
+
+- 消费级 WebView2 运行时版本差异
+- 高 DPI 缩放下的排版
+- Windows Defender / SmartScreen 拦截
+- 以非管理员权限运行
 
 ## 开源协议
 

@@ -22,6 +22,12 @@
   let controlsVisible = $state(true);
   let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // e2e 专用：@wdio/tauri-service 的 browser.tauri.*（窗口状态轮询等）依赖
+  // 该前端插件暴露的核心引用；仅在 e2e 构建模式下加载，release 产物不含。
+  if (import.meta.env.MODE === "e2e") {
+    void import("@wdio/tauri-plugin");
+  }
+
   function wake() {
     // 浏览器会挂起 AudioContext 直到首次用户交互——不解锁的话现场第一声铃是静音的
     unlockAudio();

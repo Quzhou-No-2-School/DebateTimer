@@ -62,8 +62,7 @@
     }
   }
 
-  const field =
-    "rounded border border-line px-2 py-1 text-sm outline-none focus:border-accent";
+  const field = "rounded border border-line px-2 py-1 text-sm outline-none focus:border-accent";
   const btn =
     "rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent hover:text-accent";
 </script>
@@ -264,8 +263,7 @@
         <textarea
           class="{field} mt-2 h-32 w-full font-mono text-xs"
           placeholder="导出的 JSON 会显示在这里；也可粘贴 JSON 后点“导入”"
-          bind:value={json}
-        ></textarea>
+          bind:value={json}></textarea>
         {#if error}
           <p class="mt-1 text-xs text-danger">{error}</p>
         {/if}

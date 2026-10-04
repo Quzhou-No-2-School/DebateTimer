@@ -1,8 +1,8 @@
-import type { PromptRule, SpeakerSide, Stage } from './models';
-import type { TimeSource } from './clock';
-import { authoritativeDelta, systemTimeSource } from './clock';
+import type { PromptRule, SpeakerSide, Stage } from "./models";
+import type { TimeSource } from "./clock";
+import { authoritativeDelta, systemTimeSource } from "./clock";
 
-export type EngineStatus = 'idle' | 'running' | 'paused' | 'finished';
+export type EngineStatus = "idle" | "running" | "paused" | "finished";
 
 export interface Slot {
   id: string;
@@ -42,21 +42,21 @@ function markKey(slotId: string, rule: PromptRule): string {
 }
 
 function buildSlots(stage: Stage): Slot[] {
-  const side: SpeakerSide | null = stage.side === 'neutral' ? null : stage.side;
+  const side: SpeakerSide | null = stage.side === "neutral" ? null : stage.side;
   const t = stage.timing;
   switch (t.kind) {
-    case 'single': {
+    case "single": {
       const ms = t.limitSec * 1000;
-      return [{ id: 'main', label: stage.name, side, limitMs: ms, remainMs: ms }];
+      return [{ id: "main", label: stage.name, side, limitMs: ms, remainMs: ms }];
     }
-    case 'split':
+    case "split":
       return t.buckets.map((b) => {
         const ms = b.limitSec * 1000;
         return { id: b.id, label: b.label, side, limitMs: ms, remainMs: ms };
       });
-    case 'alternating': {
+    case "alternating": {
       const ms = t.perSideSec * 1000;
-      return (['pro', 'con'] as SpeakerSide[]).map((s) => ({
+      return (["pro", "con"] as SpeakerSide[]).map((s) => ({
         id: s,
         label: s,
         side: s,
@@ -81,7 +81,7 @@ export class TimerEngine {
   private stage: Stage | null = null;
   private slots: Slot[] = [];
   private activeIndex = 0;
-  private status: EngineStatus = 'idle';
+  private status: EngineStatus = "idle";
   private deadline: number | null = null;
   private pausedRemain: number | null = null;
   private marks: Mark[] = [];
@@ -105,17 +105,23 @@ export class TimerEngine {
 
   onTick(cb: Listener<Snapshot>): () => void {
     this.tickListeners.push(cb);
-    return () => { this.tickListeners = this.tickListeners.filter((l) => l !== cb); };
+    return () => {
+      this.tickListeners = this.tickListeners.filter((l) => l !== cb);
+    };
   }
 
   onPrompt(cb: Listener<PromptEvent>): () => void {
     this.promptListeners.push(cb);
-    return () => { this.promptListeners = this.promptListeners.filter((l) => l !== cb); };
+    return () => {
+      this.promptListeners = this.promptListeners.filter((l) => l !== cb);
+    };
   }
 
   onFinish(cb: Listener<Snapshot>): () => void {
     this.finishListeners.push(cb);
-    return () => { this.finishListeners = this.finishListeners.filter((l) => l !== cb); };
+    return () => {
+      this.finishListeners = this.finishListeners.filter((l) => l !== cb);
+    };
   }
 
   // ---------- 生命周期 ----------
@@ -125,7 +131,7 @@ export class TimerEngine {
     this.slots = buildSlots(stage);
     this.activeIndex = 0;
     const timing = stage.timing;
-    if (timing.kind === 'alternating') {
+    if (timing.kind === "alternating") {
       const idx = this.slots.findIndex((s) => s.id === timing.firstSide);
       this.activeIndex = idx >= 0 ? idx : 0;
     }
@@ -134,7 +140,7 @@ export class TimerEngine {
 
   reset(): void {
     for (const s of this.slots) s.remainMs = s.limitMs;
-    this.status = 'idle';
+    this.status = "idle";
     this.deadline = null;
     this.pausedRemain = null;
     this.marks = [];
@@ -147,52 +153,52 @@ export class TimerEngine {
 
   start(): void {
     const slot = this.activeSlot();
-    if (!slot || this.status === 'running') return;
+    if (!slot || this.status === "running") return;
     this.deadline = this.time.wall() + slot.remainMs;
-    this.status = 'running';
+    this.status = "running";
     this.sampleClock();
     this.rebuildMarks();
     this.emitTick();
   }
 
   pause(): void {
-    if (this.status !== 'running' || this.deadline === null) return;
+    if (this.status !== "running" || this.deadline === null) return;
     const slot = this.activeSlot();
     if (!slot) return;
     slot.remainMs = Math.max(0, this.deadline - this.time.wall());
     this.pausedRemain = slot.remainMs;
-    this.status = 'paused';
+    this.status = "paused";
     this.deadline = null;
     this.emitTick();
   }
 
   resume(): void {
     const slot = this.activeSlot();
-    if (this.status !== 'paused' || !slot) return;
+    if (this.status !== "paused" || !slot) return;
     this.deadline = this.time.wall() + (this.pausedRemain ?? slot.remainMs);
     this.pausedRemain = null;
-    this.status = 'running';
+    this.status = "running";
     this.sampleClock();
     this.rebuildMarks();
     this.emitTick();
   }
 
   toggle(): void {
-    if (this.status === 'running') this.pause();
-    else if (this.status === 'paused') this.resume();
-    else if (this.status === 'idle') this.start();
+    if (this.status === "running") this.pause();
+    else if (this.status === "paused") this.resume();
+    else if (this.status === "idle") this.start();
   }
 
   /** 加时/减时（毫秒，可正可负） */
   adjust(deltaMs: number): void {
     const slot = this.activeSlot();
     if (!slot) return;
-    if (this.status === 'running' && this.deadline !== null) {
+    if (this.status === "running" && this.deadline !== null) {
       this.deadline += deltaMs;
       this.rebuildMarks();
-    } else if (this.status === 'idle' || this.status === 'paused') {
+    } else if (this.status === "idle" || this.status === "paused") {
       slot.remainMs = Math.max(0, slot.remainMs + deltaMs);
-      if (this.status === 'paused') this.pausedRemain = slot.remainMs;
+      if (this.status === "paused") this.pausedRemain = slot.remainMs;
     }
     this.emitTick();
   }
@@ -203,11 +209,11 @@ export class TimerEngine {
     if (idx < 0 || idx === this.activeIndex) return;
     const now = this.time.wall();
     const prev = this.activeSlot();
-    if (this.status === 'running' && this.deadline !== null && prev) {
+    if (this.status === "running" && this.deadline !== null && prev) {
       prev.remainMs = Math.max(0, this.deadline - now);
     }
     this.activeIndex = idx;
-    if (this.status === 'running') {
+    if (this.status === "running") {
       this.deadline = now + this.slots[idx].remainMs;
       this.rebuildMarks();
     }
@@ -232,7 +238,7 @@ export class TimerEngine {
     this.lastWall = nowWall;
     this.lastPerf = nowPerf;
 
-    if (this.status === 'running' && this.deadline !== null) {
+    if (this.status === "running" && this.deadline !== null) {
       // 墙钟回拨时按单调时钟补偿，保证计时连续推进
       this.deadline += wallDelta - authoritativeDelta(perfDelta, wallDelta);
 
@@ -243,7 +249,7 @@ export class TimerEngine {
         this.fireMarks(nowWall);
         if (remain <= 0) {
           slot.remainMs = 0;
-          this.status = 'finished';
+          this.status = "finished";
           this.finishedWall = nowWall;
           this.overtimeMs = 0;
           this.deadline = null;
@@ -253,7 +259,7 @@ export class TimerEngine {
           }
         }
       }
-    } else if (this.status === 'finished' && this.stage?.overtime === 'count') {
+    } else if (this.status === "finished" && this.stage?.overtime === "count") {
       this.overtimeMs = Math.max(0, nowWall - this.finishedWall);
     }
 

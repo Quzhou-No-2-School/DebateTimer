@@ -1,0 +1,4 @@
+# 统一换行为 LF：Prettier 3 默认 endOfLine=lf，
+# Windows 上 core.autocrlf=true（Git for Windows 安装默认）会让工作区变成 CRLF，
+# 导致 format:check 即使内容合规也整片报错。
+* text=auto eol=lf
