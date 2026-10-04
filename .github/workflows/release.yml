@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'      # Intel
+            args: '--target x86_64-apple-darwin'
+          - platform: 'macos-latest'      # Apple Silicon
+            args: '--target aarch64-apple-darwin'
+          - platform: 'ubuntu-22.04'      # Linux
+            args: ''
+          - platform: 'windows-latest'    # Windows
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
+            librsvg2-dev patchelf
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-rust@v1
+        with:
+          toolchain: stable
+          cache: true
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build & bundle
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: '辩论计时器 ${{ github.ref_name }}'
+          releaseBody: '请查看自动生成的发布说明。'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
