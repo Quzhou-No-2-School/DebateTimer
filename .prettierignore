@@ -13,3 +13,7 @@ coverage
 # 保留它们是为了把"许可证文本必须逐字保留"这条约束写进配置（见 commit 5923f0d：GPL-3.0 原文完整性用于 license 检测）。
 LICENSE
 static/fonts/OFL.txt
+
+# CI 工作流 YAML 是 GitHub 模板产物(自动生成、自带缩进风格),不应被 Prettier 重排。
+# 否则 prettier --check . 会拿模板文件的原始格式当差异,导致 format:check 假失败。
+.github/workflows/

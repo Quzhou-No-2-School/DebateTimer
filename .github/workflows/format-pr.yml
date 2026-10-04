@@ -1,0 +1,71 @@
+name: format-pr
+
+# 在 PR 推送时自动用 Prettier 格式化本次 PR 改动过的源码文件,
+# 并把格式化结果自动 commit + push 回 PR 分支,保证 format:check 总绿。
+#
+# 取舍说明(见 PR 描述):
+#   - 只格式化 PR 改动文件(git diff origin/<base>...HEAD),不 sweep 全仓库,
+#     避免把和本次改动无关的旧文件一并重排。
+#   - .github/workflows/ 已在 .prettierignore 排除,CI 模板 YAML 不受影响。
+#   - git-auto-commit-action 自带 changed-detection:无差异则不提交,
+#     所以格式化提交再次触发本 workflow 时不会无限循环。
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      # 组装『本次 PR 改动、且可由 Prettier 处理』的文件列表。
+      # diff-filter=ACMR: 改/增/拷/重命名(排除删除),三点 diff 基于 merge-base。
+      - name: 收集本次 PR 需格式化的文件
+        id: files
+        run: |
+          set -euo pipefail
+          FILES="$(
+            git diff --name-only --diff-filter=ACMR "origin/${{ github.base_ref }}"...HEAD \
+              | grep -E '\.(svelte|ts|tsx|js|jsx|mjs|cjs|json|css|scss|html|md)$' \
+              | sed '/^$/d' \
+              || true
+          )"
+          printf 'changed_files<<EOF\n%s\nEOF\n' "$FILES" >> "$GITHUB_OUTPUT"
+          # 空格分隔的列表,供 git-auto-commit file_pattern 使用
+          SPACE_LIST="$(printf '%s' "$FILES" | tr '\n' ' ' | sed -E 's/ +$//; s/^ +//')"
+          printf 'changed_files_oneline<<EOF\n%s\nEOF\n' "$SPACE_LIST" >> "$GITHUB_OUTPUT"
+          echo "需格式化文件数: $(printf '%s\n' "$FILES" | sed '/^$/d' | wc -l)"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: Prettier 格式化 PR 改动文件
+        run: |
+          set -euo pipefail
+          FILES='${{ steps.files.outputs.changed_files }}'
+          if [ -z "$FILES" ]; then
+            echo "本 PR 没有需要格式化的文件,跳过。"
+            exit 0
+          fi
+          printf '%s\n' "$FILES" | xargs npx prettier --write
+
+      - name: 自动提交格式化结果
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_options: '--no-verify'
+          commit_user_name: 'github-actions[bot]'
+          commit_user_email: '41898282+github-actions[bot]@users.noreply.github.com'
+          commit_message: 'style: prettier 自动格式化'
+          file_pattern: ${{ steps.files.outputs.changed_files_oneline }}
