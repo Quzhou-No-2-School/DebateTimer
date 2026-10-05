@@ -27,7 +27,11 @@ serde_json = "1"
 # plugin used by @wdio/tauri-service (browser.tauri, window-state polling).
 # Never present in release builds.
 [target.'cfg(debug_assertions)'.dependencies]
-tauri-plugin-wdio-webdriver = "1"
+# Git-pinned at webdriverio/desktop-mobile#687: tauri 2.12 moved to
+# webview2-com 0.39 (semver-incompatible) and the 1.4.0 registry release
+# stops compiling on Windows against it. Revert to "1" once a release
+# newer than 1.4.0 lands on crates.io.
+tauri-plugin-wdio-webdriver = { git = "https://github.com/webdriverio/desktop-mobile", rev = "e4bdb66ec5b1d96b7fd766d70370a8e8361e0459" }
 tauri-plugin-wdio = "1"
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
