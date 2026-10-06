@@ -7,6 +7,12 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # TypeScript 7（Go 原生重写版）当前被所有 @sveltejs/kit 版本的 peer 范围拒绝
+    # （连 kit 3.0.0 也只接受 ^6.0.0），升上去 npm ci 必然 ERESOLVE。
+    # 待 kit 扩大 peer 范围后再恢复 major 更新。
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       minor-and-patch:
         applies-to: version-updates
