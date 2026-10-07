@@ -47,6 +47,11 @@ describe("resolveHotkey", () => {
     expect(resolveHotkey(key("Tab"))).toEqual({ type: "switchSide" });
   });
 
+  it("R 键已不再映射重置（重置改为按钮操作，无快捷键）", () => {
+    expect(resolveHotkey(key("r"))).toBeNull();
+    expect(resolveHotkey(key("R"))).toBeNull();
+  });
+
   it("加减号调整时长，Shift 为大步长", () => {
     expect(resolveHotkey(key("+"))).toEqual({ type: "adjust", deltaMs: ADJUST_STEP_MS });
     expect(resolveHotkey(key("-"))).toEqual({ type: "adjust", deltaMs: -ADJUST_STEP_MS });

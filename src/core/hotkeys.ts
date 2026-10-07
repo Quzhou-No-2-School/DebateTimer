@@ -9,7 +9,6 @@ export type HotkeyAction =
   | { type: "toggle" }
   | { type: "nextStage" }
   | { type: "prevStage" }
-  | { type: "reset" }
   | { type: "switchSide" }
   | { type: "adjust"; deltaMs: number }
   | { type: "editTopic" }
@@ -56,9 +55,6 @@ export function resolveHotkey(e: KeyLike): HotkeyAction | null {
     case "ArrowLeft":
     case "Backspace":
       return { type: "prevStage" };
-    case "r":
-    case "R":
-      return { type: "reset" };
     case "Tab":
       return { type: "switchSide" };
     case "+":
