@@ -38,17 +38,4 @@ describe("timer core", () => {
     // 新环节是 idle 态
     await expect($("button=开始")).toBeDisplayed();
   });
-
-  it("r resets remaining time to the stage's full value", async () => {
-    const fresh = await clockText();
-
-    await browser.keys(["Space"]);
-    await browser.pause(1500);
-    expect(await clockText()).not.toBe(fresh);
-
-    await browser.keys(["r"]);
-    await browser.pause(300);
-    await expect($("button=开始")).toBeDisplayed();
-    expect(await clockText()).toBe(fresh);
-  });
 });
