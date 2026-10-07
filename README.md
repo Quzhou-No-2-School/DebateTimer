@@ -88,7 +88,7 @@ CI 分两条：`quality` 是 Linux 单机快速道（格式 + 类型 + 单测）
 | `windows-2022`   | Windows 10 世代内核（Server 2022）         | 编译 + e2e |
 | `windows-2025`   | Windows 11 世代内核（Server 2025）         | 编译       |
 | `macos-15`       | macOS 15（arm64）                          | 编译 + e2e |
-| `windows-11-arm` | 真 Windows 11（arm64，实验性，非阻塞探测） | 编译 + e2e |
+| `windows-11-arm` | 真 Windows 11（arm64）                     | 编译 + e2e |
 | `macos-26`       | macOS 26（非阻塞探测）                     | 编译 + e2e |
 
 **已知缺口（重要）**：GitHub 托管 runner 不提供 Windows 10 / 11 的**消费者版本**镜像，上表的 Windows 行都是 Server SKU。因此以下项目仍需在真机上手工验收：
