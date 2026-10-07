@@ -93,4 +93,30 @@ describe("full-flow reset", () => {
     await browser.pause(200);
     await expect(dialog).not.toBeDisplayed();
   });
+
+  it("focus stays inside the dialog and is released to body on close", async () => {
+    await wake();
+    await $("button=重置").click();
+    const dialog = $('[role="dialog"][aria-label="重置全流程？"]');
+    await expect(dialog).toBeDisplayed();
+    // 打开即接管焦点：落在容器上，而不是背景的「重置」按钮
+    expect(await browser.execute(() => document.activeElement?.getAttribute("role"))).toBe(
+      "dialog",
+    );
+
+    // Tab 若漏到背景（如「下一环节」「开始」），随后的空格会触发原生 click
+    for (let i = 0; i < 4; i++) {
+      await browser.keys(["Tab"]);
+      expect(
+        await browser.execute(() => document.activeElement?.closest('[role="dialog"]') !== null),
+      ).toBe(true);
+    }
+
+    await browser.keys(["Escape"]);
+    await browser.pause(200);
+    await expect(dialog).not.toBeDisplayed();
+    // 焦点不回到「重置」按钮，否则下一次 Enter / 空格会重新弹出确认框
+    expect(await browser.execute(() => document.activeElement?.tagName)).not.toBe("BUTTON");
+    await expect($("button=开始")).toBeDisplayed();
+  });
 });
