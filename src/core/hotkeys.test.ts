@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ADJUST_STEP_LARGE_MS, ADJUST_STEP_MS, isEditableTarget, resolveHotkey } from "./hotkeys";
-import type { KeyLike } from "./hotkeys";
+import {
+  ADJUST_STEP_LARGE_MS,
+  ADJUST_STEP_MS,
+  gateHotkey,
+  isEditableTarget,
+  resolveHotkey,
+} from "./hotkeys";
+import type { HotkeyAction, KeyLike, OverlayState } from "./hotkeys";
 
 function key(k: string, extra: Partial<KeyLike> = {}): KeyLike {
   return { key: k, ...extra };
@@ -47,6 +53,11 @@ describe("resolveHotkey", () => {
     expect(resolveHotkey(key("Tab"))).toEqual({ type: "switchSide" });
   });
 
+  it("R 键已不再映射重置（重置改为按钮操作，无快捷键）", () => {
+    expect(resolveHotkey(key("r"))).toBeNull();
+    expect(resolveHotkey(key("R"))).toBeNull();
+  });
+
   it("加减号调整时长，Shift 为大步长", () => {
     expect(resolveHotkey(key("+"))).toEqual({ type: "adjust", deltaMs: ADJUST_STEP_MS });
     expect(resolveHotkey(key("-"))).toEqual({ type: "adjust", deltaMs: -ADJUST_STEP_MS });
@@ -67,5 +78,41 @@ describe("resolveHotkey", () => {
 
   it("未映射的键返回 null", () => {
     expect(resolveHotkey(key("q"))).toBeNull();
+  });
+});
+
+describe("gateHotkey", () => {
+  const none: OverlayState = {
+    quitOpen: false,
+    resetOpen: false,
+    helpOpen: false,
+    settingsOpen: false,
+  };
+  const toggle: HotkeyAction = { type: "toggle" };
+  const help: HotkeyAction = { type: "help" };
+  const close: HotkeyAction = { type: "close" };
+
+  it("没有浮层时全部放行", () => {
+    expect(gateHotkey(toggle, none)).toBe(true);
+    expect(gateHotkey(help, none)).toBe(true);
+  });
+
+  it("任一浮层打开时只放行 Esc", () => {
+    for (const k of ["quitOpen", "resetOpen", "settingsOpen", "helpOpen"] as const) {
+      const s = { ...none, [k]: true };
+      expect(gateHotkey(toggle, s)).toBe(false);
+      expect(gateHotkey({ type: "nextStage" }, s)).toBe(false);
+      expect(gateHotkey(close, s)).toBe(true);
+    }
+  });
+
+  it("帮助单独打开时放行 H，用来关闭帮助", () => {
+    expect(gateHotkey(help, { ...none, helpOpen: true })).toBe(true);
+  });
+
+  it("其他弹窗打开时 H 不放行（不能在确认弹窗下面开关帮助）", () => {
+    expect(gateHotkey(help, { ...none, resetOpen: true })).toBe(false);
+    expect(gateHotkey(help, { ...none, helpOpen: true, quitOpen: true })).toBe(false);
+    expect(gateHotkey(help, { ...none, settingsOpen: true })).toBe(false);
   });
 });

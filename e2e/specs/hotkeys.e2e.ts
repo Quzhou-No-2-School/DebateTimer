@@ -51,3 +51,18 @@ describe("hotkey guard while typing", () => {
     await expect($("header button")).toHaveText("e2e-topic");
   });
 });
+
+describe("help overlay hotkey", () => {
+  it("h opens the help overlay and h closes it again", async () => {
+    await wake();
+    const help = $('[role="dialog"][aria-label="快捷键"]');
+
+    await browser.keys(["h"]);
+    await expect(help).toBeDisplayed();
+
+    // 浮层闸门只放行 Esc；帮助单独打开时 H 是例外，否则「H 显示 / 隐藏本帮助」就成了空话
+    await browser.keys(["h"]);
+    await browser.pause(200);
+    await expect(help).not.toBeDisplayed();
+  });
+});

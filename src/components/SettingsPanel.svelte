@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { releaseFocus } from "../lib/focus";
   import { config } from "../lib/config.svelte";
   import { timer } from "../lib/timer.svelte";
   import type { FlowTemplate, PromptRule } from "../core/models";
@@ -65,6 +66,16 @@
   const field = "rounded border border-line px-2 py-1 text-sm outline-none focus:border-accent";
   const btn =
     "rounded-md border border-line px-3 py-1.5 text-sm hover:border-accent hover:text-accent";
+
+  let dialog = $state<HTMLDivElement | null>(null);
+
+  // 打开时把焦点收进面板，关闭时按 releaseFocus 的规则交还
+  $effect(() => {
+    if (!open || !dialog) return;
+    const prev = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialog.focus();
+    return () => releaseFocus(prev);
+  });
 </script>
 
 {#if open}
@@ -75,7 +86,9 @@
   >
     <div
       class="w-[52rem] rounded-xl border border-line bg-canvas p-8 shadow-lg"
+      bind:this={dialog}
       role="dialog"
+      aria-modal="true"
       aria-label="赛制设置"
       tabindex="-1"
       onclick={(e) => e.stopPropagation()}

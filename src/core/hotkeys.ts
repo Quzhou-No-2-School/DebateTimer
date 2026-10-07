@@ -9,7 +9,6 @@ export type HotkeyAction =
   | { type: "toggle" }
   | { type: "nextStage" }
   | { type: "prevStage" }
-  | { type: "reset" }
   | { type: "switchSide" }
   | { type: "adjust"; deltaMs: number }
   | { type: "editTopic" }
@@ -17,6 +16,14 @@ export type HotkeyAction =
   | { type: "help" }
   | { type: "close" }
   | { type: "gotoStage"; index: number };
+
+/** 当前打开的浮层；有任一浮层时全局快捷键需要先过 gateHotkey */
+export interface OverlayState {
+  quitOpen: boolean;
+  resetOpen: boolean;
+  helpOpen: boolean;
+  settingsOpen: boolean;
+}
 
 export const ADJUST_STEP_MS = 10_000;
 export const ADJUST_STEP_LARGE_MS = 60_000;
@@ -56,9 +63,6 @@ export function resolveHotkey(e: KeyLike): HotkeyAction | null {
     case "ArrowLeft":
     case "Backspace":
       return { type: "prevStage" };
-    case "r":
-    case "R":
-      return { type: "reset" };
     case "Tab":
       return { type: "switchSide" };
     case "+":
@@ -89,4 +93,17 @@ export function resolveHotkey(e: KeyLike): HotkeyAction | null {
   }
 
   return null;
+}
+
+/**
+ * 浮层打开期间的快捷键闸门：返回 false 表示吞掉这个动作。
+ *
+ * 有浮层时只放行 Esc（走 close 链）；唯一例外是帮助单独打开时放行 H，
+ * 保证帮助里写的「H 显示 / 隐藏本帮助」成立。
+ */
+export function gateHotkey(action: HotkeyAction, s: OverlayState): boolean {
+  const modal = s.quitOpen || s.resetOpen || s.settingsOpen;
+  if (!modal && !s.helpOpen) return true;
+  if (action.type === "close") return true;
+  return action.type === "help" && s.helpOpen && !modal;
 }

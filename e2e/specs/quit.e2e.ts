@@ -12,7 +12,7 @@ describe("quit entry", () => {
     await wake();
     await $("button=退出").click();
 
-    const dialog = $('[role="dialog"][aria-label="退出确认"]');
+    const dialog = $('[role="dialog"][aria-label="退出应用？"]');
     await expect(dialog).toBeDisplayed();
     await expect(dialog).toHaveText(expect.stringContaining("比赛进行中退出会中断计时"));
 
