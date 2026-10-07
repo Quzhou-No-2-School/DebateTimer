@@ -67,6 +67,13 @@
     const action = resolveHotkey(e);
     if (!action) return;
 
+    if (
+      (quitOpen || resetOpen || helpOpen || settingsOpen) &&
+      action.type !== "close"
+    ) {
+      return;
+    }
+
     switch (action.type) {
       case "toggle":
         e.preventDefault();
