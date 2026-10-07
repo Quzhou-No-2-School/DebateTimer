@@ -32,6 +32,15 @@ describe("full-flow reset", () => {
   });
 
   it("confirming returns to stage 1 with a cleared, persisted state", async () => {
+    await browser.keys(["t"]);
+    const input = $("input");
+    await input.waitForDisplayed();
+    await input.click();
+    await input.clearValue();
+    await input.addValue("e2e-topic");
+    await browser.keys(["Enter"]); // 输入框吞掉 Enter 并提交
+    await expect($("input")).not.toExist();
+
     const fresh = await clockText(); // 第一环节满值
 
     await browser.keys(["Enter"]);
@@ -42,12 +51,14 @@ describe("full-flow reset", () => {
     await wake();
     await $("button=重置").click();
     const dialog = $('[role="dialog"][aria-label="重置全流程？"]');
+    await expect(dialog).toBeDisplayed();
     await dialog.$("button=确认重置").click();
 
     await browser.pause(300);
     await expect(dialog).not.toBeDisplayed();
     // 回到第一环节：满值 + idle
     await expect($("button=开始")).toBeDisplayed();
+    // 满值比较对"清零但留在第 2 环节"类回归无分辨力（两环节同为 3:00），由下方持久化断言兜底
     expect(await clockText()).toBe(fresh);
     // stageIndex 已持久化回 0（PersistedState.match.stageIndex，见 src/core/storage.ts）
     const idx = await browser.execute(() => {
@@ -55,21 +66,25 @@ describe("full-flow reset", () => {
       return raw ? (JSON.parse(raw) as { match: { stageIndex: number } }).match.stageIndex : -1;
     });
     expect(idx).toBe(0);
+    // 辩题在重置后保留（计划承诺：只清流程与计时，不清 match 配置）
+    await expect($("header button")).toHaveText("e2e-topic");
   });
 
   it("hotkeys are blocked while the reset dialog is open", async () => {
-    // 打开重置弹窗后按 Enter：守卫（+page.svelte:70-76）应拦截"下一环节"
     await wake();
     await $("button=重置").click();
     const dialog = $('[role="dialog"][aria-label="重置全流程？"]');
     await expect(dialog).toBeDisplayed();
 
-    const clockBefore = await clockText();
-    await browser.keys(["Enter"]);
+    await browser.keys(["Space"]); // 守卫若失效 → toggle → 计时器启动
     await browser.pause(300);
 
-    // 弹窗仍在、环节未切换（计时满值不变 = 还在第一环节）
     await expect(dialog).toBeDisplayed();
-    expect(await clockText()).toBe(clockBefore);
+    await expect($("button=开始")).toBeDisplayed(); // 与模板时长无关的探针
+
+    // Esc 走 close 链关闭重置弹窗（+page.svelte close 链的 resetOpen 分支）
+    await browser.keys(["Escape"]);
+    await browser.pause(200);
+    await expect(dialog).not.toBeDisplayed();
   });
 });
