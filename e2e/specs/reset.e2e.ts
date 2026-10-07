@@ -11,6 +11,12 @@ describe("full-flow reset", () => {
 
   after(async () => {
     await clearPersistedState();
+    // 本 spec 的用例都点过「重置」按钮，焦点会留在 BUTTON 上；
+    // 嵌入式 provider 跨 session 复用同一页面，后续 spec（smoke/timing 的
+    // activeElement 守卫）会继承这个焦点。照 quit-confirm.e2e.ts 的惯例
+    // reload，把干净页面交还给下一个 spec。
+    await browser.refresh();
+    await expect($("main")).toBeDisplayed();
   });
 
   it("cancel keeps the running timer untouched", async () => {
