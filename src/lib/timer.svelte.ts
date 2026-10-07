@@ -86,11 +86,6 @@ class TimerStore {
     this.engine.toggle();
   }
 
-  reset(): void {
-    this.engine.reset();
-    this.clearPrompt();
-  }
-
   adjust(deltaMs: number): void {
     this.engine.adjust(deltaMs);
   }
