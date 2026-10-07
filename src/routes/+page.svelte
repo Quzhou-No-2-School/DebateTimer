@@ -67,10 +67,7 @@
     const action = resolveHotkey(e);
     if (!action) return;
 
-    if (
-      (quitOpen || resetOpen || helpOpen || settingsOpen) &&
-      action.type !== "close"
-    ) {
+    if ((quitOpen || resetOpen || helpOpen || settingsOpen) && action.type !== "close") {
       return;
     }
 
