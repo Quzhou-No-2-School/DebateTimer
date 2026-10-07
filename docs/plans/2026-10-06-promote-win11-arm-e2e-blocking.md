@@ -15,20 +15,20 @@
 **要解决的两个现象（同一根源）：**
 
 1. **PR 的 action 里根本没有 windows-11-arm**：它只存在于 `platform-probe` job 的矩阵，而该 job 的 job 级 `if`（platform.yml:102，`workflow_dispatch || github.ref == 'refs/heads/main'`）排除了 pull_request 事件 → PR 上整个探测 job skipped、矩阵不展开（PR run 37473092731 实测：4 个阻塞 job + `Probe · ${{ matrix.label }}: skipped`）。**当前 PR 的 e2e 覆盖没有任何 Win11**。
-2. **main 的 action 里它常显示"已取消"**：platform.yml:27-29 的 concurrency `cancel-in-progress` 在新 push 时取消上一个运行；windows-11-arm 最慢（~14-15 分钟），push 间隔（dependabot ~8 分钟）短于其时长 → 总是它被挤掉（runs 37471796664 / 37472850186 两度复现，其余 6 job 全绿）。
+2. **main 的 action 里它常显示"已取消"**：platform.yml:27-29 的 concurrency `cancel-in-progress` 在新 push 时取消上一个运行；windows-11-arm 最慢（~9-15 分钟），push 间隔（dependabot ~8 分钟）短于其时长 → 总是它被挤掉（runs 37471796664 / 37472850186 两度复现，其余 6 job 全绿）。
 
 根源：windows-11-arm e2e 只是 main-only 非阻塞探测。移入阻塞矩阵后两个现象同时消失。
 
 **为什么要提升（探测证据充分）：**
 
-- 探测行已连续 4+ 次跑绿：runs [37180146401](https://github.com/Quzhou-No-2-School/DebateTimer/actions/runs/37180146401)、37191190787、37191815146、37316659457，全部 `Probe · windows-11-arm · build+e2e: success`。
+- 探测行已连续 4 次跑绿（runs 37180146401 / 37191190787 / 37191815146 / 37316659457），全部 `Probe · windows-11-arm · build+e2e: success`。
 - `@wdio/tauri-service` 的 win32-arm64 支持疑虑已消除（e2e 在该 runner 上真实跑通）。
 - 满足原计划 docs/plans/2026-09-22-20-测试与CI实施计划.md §2 的"跑绿若干次后再提升"标准。
 
 **代价（如实告知）：**
 
-- 该 job 实测单次 **约 14-15 分钟**（13:25:24→13:40:17、05:31:40→05:46:04 两次实测），是矩阵里最慢的行。加入阻塞组后，PR 的关键路径时长由 ~6 分钟变为 ~15 分钟。
-- main 上的取消现象不会消失：platform.yml 的 concurrency（`platform-${{ github.ref }}` + `cancel-in-progress: true`）会在新 push 时取消上一个运行；windows-11-arm 因最慢，**仍会是最常显示"已取消"的 job**。缓解手段是合并 dependabot bump 时攒批（当前 main 上 ~8 分钟一个 bump，间隔短于 15 分钟运行时长）。
+- 该 job 实测单次 **8m48s–14m53s**（4 次绿 run 的实际区间：热缓存 ~9 分钟、冷缓存 ~15 分钟；13:25:24→13:40:17、05:31:40→05:46:04 为冷缓存慢样本），是矩阵里最慢的行。加入阻塞组后，PR 的关键路径时长由 ~6 分钟变为 ~9-15 分钟。
+- main 上的取消现象不会消失：platform.yml 的 concurrency（`platform-${{ github.ref }}` + `cancel-in-progress: true`）会在新 push 时取消上一个运行；windows-11-arm 因最慢，**仍会是最常显示"已取消"的 job**。缓解手段是合并 dependabot bump 时攒批（当前 main 上 ~8 分钟一个 bump，间隔短于 9-15 分钟运行时长）。
 
 **前置事实：**
 
@@ -40,6 +40,7 @@
 ### Task 1: 修改 platform.yml——矩阵行迁移
 
 **Files:**
+
 - Modify: `.github/workflows/platform.yml:5-13`（头注释）、`:37-42`（阻塞 matrix）、`:107-111`（探测 matrix）
 
 **Step 1: 从 origin/main 创建实施分支**
@@ -81,6 +82,7 @@ git checkout -b ci/promote-win11-arm-e2e origin/main
 
 **Step 3: 阻塞 matrix 加入一行（platform.yml:42 之后）**
 
+<!-- prettier-ignore -->
 ```yaml
           - { label: "windows-11-arm · build+e2e", os: windows-11-arm, e2e: true }
 ```
@@ -91,6 +93,7 @@ git checkout -b ci/promote-win11-arm-e2e origin/main
 
 删除：
 
+<!-- prettier-ignore -->
 ```yaml
           - { label: "windows-11-arm · build+e2e", os: windows-11-arm }
 ```
@@ -117,6 +120,7 @@ git commit -m "ci: promote windows-11-arm build+e2e from probe to blocking matri
 ### Task 2: 同步文档
 
 **Files:**
+
 - Modify: `README.md:91`
 - Modify: `docs/plans/2026-09-22-20-测试与CI实施计划.md`（§7 未决表 win32-arm64 行）
 - Create: 本计划文件 `docs/plans/2026-10-06-promote-win11-arm-e2e-blocking.md`（随 docs commit 入库）
@@ -131,6 +135,7 @@ git commit -m "ci: promote windows-11-arm build+e2e from probe to blocking matri
 
 改为：
 
+<!-- prettier-ignore -->
 ```markdown
 | `windows-11-arm` | 真 Windows 11（arm64）                     | 编译 + e2e |
 ```
@@ -139,12 +144,14 @@ git commit -m "ci: promote windows-11-arm build+e2e from probe to blocking matri
 
 docs/plans/2026-09-22-20-测试与CI实施计划.md 中：
 
+<!-- prettier-ignore -->
 ```markdown
 | `@wdio/tauri-service` 是否支持 win32-arm64                                  | 官方平台支持表只区分 Windows/Linux/macOS，未区分架构                                                        | Task 11 探测行                                          |
 ```
 
 改为（沿用该表已解决项的删除线格式）：
 
+<!-- prettier-ignore -->
 ```markdown
 | ~~`@wdio/tauri-service` 是否支持 win32-arm64~~                              | **已实测支持（2026-10-06）**：windows-11-arm build+e2e 连续 4 次跑绿（runs 37180146401 / 37191190787 / 37191815146 / 37316659457），并已提升为阻塞行 | 见 docs/plans/2026-10-06-promote-win11-arm-e2e-blocking.md |
 ```
@@ -175,11 +182,11 @@ PR 的 platform 运行应出现 5 个阻塞 job，其中包含 `windows-11-arm �
 gh run watch $(gh run list --branch ci/promote-win11-arm-e2e --workflow platform --limit 1 --json databaseId --jq '.[0].databaseId') --exit-status
 ```
 
-预期：全部阻塞 job success（含 windows-11-arm · build+e2e）。注意 arm64 行约 15 分钟，是整个 PR 的关键路径。
+预期：全部阻塞 job success（含 windows-11-arm · build+e2e）。注意 arm64 行约 9-15 分钟，是整个 PR 的关键路径。
 
 **Step 3: 合并后观察 main 一次**
 
-合并后 main 的下一次 platform 运行中确认同样展开。若随后 15 分钟内又有 push 进 main，该行会再次显示"已取消"——这是 concurrency 的预期行为，不是失败；它会在最新一次运行中重跑。
+合并后 main 的下一次 platform 运行中确认同样展开。若其 9-15 分钟的运行期间又有 push 进 main，该行会再次显示"已取消"——这是 concurrency 的预期行为，不是失败；它会在最新一次运行中重跑。
 
 ---
 

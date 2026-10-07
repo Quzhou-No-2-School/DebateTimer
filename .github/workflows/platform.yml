@@ -12,8 +12,8 @@ name: platform
 # 探测行（非阻塞，只在 main 或手动触发时跑）：windows-2025 的 e2e、macos-26。
 # 跑绿若干次后再提升为阻塞行——见 docs/plans/2026-09-22-20-测试与CI实施计划.md §2。
 #
-# 平台覆盖的诚实缺口：以上都不是 Windows 10 / 11 **消费版**桌面，
-# 测不到消费级 WebView2 版本、DPI 缩放、Defender/SmartScreen、非管理员权限运行。
+# 平台覆盖的诚实缺口：除 windows-11-arm（字面 Win11 客户端，arm64）外都是 Server SKU，
+# 且均非典型消费环境，测不到消费级 WebView2 版本、DPI 缩放、Defender/SmartScreen、非管理员权限运行。
 
 on:
   pull_request:

@@ -82,16 +82,16 @@ xvfb-run -a npm run test:e2e
 
 CI 分两条：`quality` 是 Linux 单机快速道（格式 + 类型 + 单测），`platform` 是平台矩阵（编译检查 + e2e）。
 
-| CI runner        | 对应的真实环境                             | 跑什么     |
-| ---------------- | ------------------------------------------ | ---------- |
-| `ubuntu-24.04`   | Ubuntu 24.04                               | 编译 + e2e |
-| `windows-2022`   | Windows 10 世代内核（Server 2022）         | 编译 + e2e |
-| `windows-2025`   | Windows 11 世代内核（Server 2025）         | 编译       |
-| `macos-15`       | macOS 15（arm64）                          | 编译 + e2e |
-| `windows-11-arm` | 真 Windows 11（arm64）                     | 编译 + e2e |
-| `macos-26`       | macOS 26（非阻塞探测）                     | 编译 + e2e |
+| CI runner        | 对应的真实环境                     | 跑什么     |
+| ---------------- | ---------------------------------- | ---------- |
+| `ubuntu-24.04`   | Ubuntu 24.04                       | 编译 + e2e |
+| `windows-2022`   | Windows 10 世代内核（Server 2022） | 编译 + e2e |
+| `windows-2025`   | Windows 11 世代内核（Server 2025） | 编译       |
+| `macos-15`       | macOS 15（arm64）                  | 编译 + e2e |
+| `windows-11-arm` | 真 Windows 11（arm64）             | 编译 + e2e |
+| `macos-26`       | macOS 26（非阻塞探测）             | 编译 + e2e |
 
-**已知缺口（重要）**：GitHub 托管 runner 不提供 Windows 10 / 11 的**消费者版本**镜像，上表的 Windows 行都是 Server SKU。因此以下项目仍需在真机上手工验收：
+**已知缺口（重要）**：GitHub 托管 runner 不提供 Windows 10 / 11 的**消费者版本**镜像，除 `windows-11-arm`（字面 Win11 客户端，但 arm64）外，上表 Windows 行均为 Server SKU。因此以下项目仍需在真机上手工验收：
 
 - 消费级 WebView2 运行时版本差异
 - 高 DPI 缩放下的排版
