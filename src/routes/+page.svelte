@@ -19,6 +19,7 @@
   let helpOpen = $state(false);
   let settingsOpen = $state(false);
   let quitOpen = $state(false);
+  let resetOpen = $state(false);
   let controlsVisible = $state(true);
   let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -56,6 +57,11 @@
     }
   }
 
+  function resetMatch() {
+    resetOpen = false;
+    timer.loadStage(0);
+  }
+
   function onKeydown(e: KeyboardEvent) {
     wake();
     const action = resolveHotkey(e);
@@ -71,9 +77,6 @@
         break;
       case "prevStage":
         timer.prev();
-        break;
-      case "reset":
-        timer.reset();
         break;
       case "switchSide":
         e.preventDefault();
@@ -97,6 +100,7 @@
         break;
       case "close":
         if (quitOpen) quitOpen = false;
+        else if (resetOpen) resetOpen = false;
         else if (helpOpen) helpOpen = false;
         else if (settingsOpen) settingsOpen = false;
         else editing = null;
@@ -129,6 +133,7 @@
     onHelp={() => (helpOpen = true)}
     onSettings={() => (settingsOpen = true)}
     onQuit={() => (quitOpen = true)}
+    onReset={() => (resetOpen = true)}
   />
 </main>
 
@@ -141,4 +146,12 @@
   confirmLabel="退出"
   onCancel={() => (quitOpen = false)}
   onConfirm={quit}
+/>
+<ConfirmDialog
+  open={resetOpen}
+  title="重置全流程？"
+  body="将清空所有环节的进度并回到第一环节，辩题与队名保留。"
+  confirmLabel="确认重置"
+  onCancel={() => (resetOpen = false)}
+  onConfirm={resetMatch}
 />

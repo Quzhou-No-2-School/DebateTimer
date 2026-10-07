@@ -7,8 +7,9 @@
     onHelp: () => void;
     onSettings: () => void;
     onQuit: () => void;
+    onReset: () => void;
   }
-  let { visible, onHelp, onSettings, onQuit }: Props = $props();
+  let { visible, onHelp, onSettings, onQuit, onReset }: Props = $props();
 
   const btn =
     "rounded-md border border-line px-4 py-2 text-sm font-medium text-ink transition-colors duration-150 hover:border-accent hover:text-accent active:bg-surface";
@@ -23,7 +24,7 @@
   </button>
   <button class={btn} onclick={() => timer.prev()}>上一环节</button>
   <button class={btn} onclick={() => timer.next()}>下一环节</button>
-  <button class={btn} onclick={() => timer.reset()}>重置</button>
+  <button class={btn} onclick={onReset}>重置</button>
   <button class={btn} onclick={() => timer.adjust(-ADJUST_STEP_MS)}>−10 秒</button>
   <button class={btn} onclick={() => timer.adjust(ADJUST_STEP_MS)}>+10 秒</button>
   <button class={btn} onclick={() => timer.switchSide()}>切换发言方</button>
