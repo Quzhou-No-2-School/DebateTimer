@@ -46,7 +46,7 @@ describe("quit confirmation", () => {
     });
 
     await $("button=退出").click();
-    const dialog = $('[role="dialog"][aria-label="退出确认"]');
+    const dialog = $('[role="dialog"][aria-label="退出应用？"]');
     await expect(dialog).toBeDisplayed();
     await dialog.$("button=退出").click();
 

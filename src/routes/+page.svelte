@@ -13,7 +13,7 @@
   import PromptOverlay from "../components/PromptOverlay.svelte";
   import HelpOverlay from "../components/HelpOverlay.svelte";
   import SettingsPanel from "../components/SettingsPanel.svelte";
-  import QuitConfirm from "../components/QuitConfirm.svelte";
+  import ConfirmDialog from "../components/ConfirmDialog.svelte";
 
   let editing = $state<"topic" | "pro" | "con" | null>(null);
   let helpOpen = $state(false);
@@ -134,4 +134,11 @@
 
 <HelpOverlay open={helpOpen} onClose={() => (helpOpen = false)} />
 <SettingsPanel bind:open={settingsOpen} onQuit={() => (quitOpen = true)} />
-<QuitConfirm open={quitOpen} onCancel={() => (quitOpen = false)} onConfirm={quit} />
+<ConfirmDialog
+  open={quitOpen}
+  title="退出应用？"
+  body="比赛进行中退出会中断计时，请确认。"
+  confirmLabel="退出"
+  onCancel={() => (quitOpen = false)}
+  onConfirm={quit}
+/>
