@@ -3,7 +3,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { timer } from "../lib/timer.svelte";
   import { config } from "../lib/config.svelte";
-  import { resolveHotkey } from "../core/hotkeys";
+  import { gateHotkey, resolveHotkey } from "../core/hotkeys";
   import { unlockAudio } from "../core/audio";
   import TimerDisplay from "../components/TimerDisplay.svelte";
   import TopicHeader from "../components/TopicHeader.svelte";
@@ -67,9 +67,7 @@
     const action = resolveHotkey(e);
     if (!action) return;
 
-    if ((quitOpen || resetOpen || helpOpen || settingsOpen) && action.type !== "close") {
-      return;
-    }
+    if (!gateHotkey(action, { quitOpen, resetOpen, helpOpen, settingsOpen })) return;
 
     switch (action.type) {
       case "toggle":
