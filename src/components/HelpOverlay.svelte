@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { releaseFocus } from "../lib/focus";
   interface Props {
     open: boolean;
     onClose: () => void;
@@ -17,6 +18,16 @@
     ["H", "显示 / 隐藏本帮助"],
     ["Esc", "关闭弹窗 / 退出编辑"],
   ];
+
+  let dialog = $state<HTMLDivElement | null>(null);
+
+  // 打开时把焦点收进面板，关闭时按 releaseFocus 的规则交还
+  $effect(() => {
+    if (!open || !dialog) return;
+    const prev = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    dialog.focus();
+    return () => releaseFocus(prev);
+  });
 </script>
 
 {#if open}
@@ -27,7 +38,9 @@
   >
     <div
       class="w-[36rem] rounded-xl border border-line bg-canvas p-8 shadow-lg"
+      bind:this={dialog}
       role="dialog"
+      aria-modal="true"
       aria-label="快捷键"
       tabindex="-1"
       onclick={(e) => e.stopPropagation()}

@@ -120,7 +120,8 @@
 
 <svelte:window onkeydown={onKeydown} onpointerdown={wake} onmousemove={wake} />
 
-<main class="flex h-full w-full flex-col">
+<!-- 任一浮层打开时背景整体 inert：不可聚焦、不可点击，Tab 不会漏到控制条上 -->
+<main class="flex h-full w-full flex-col" inert={quitOpen || resetOpen || helpOpen || settingsOpen}>
   <TopicHeader {editing} onEdit={(t) => (editing = t)} />
 
   <section class="flex flex-1 flex-col items-center justify-center gap-6">
@@ -140,7 +141,10 @@
 </main>
 
 <HelpOverlay open={helpOpen} onClose={() => (helpOpen = false)} />
-<SettingsPanel bind:open={settingsOpen} onQuit={() => (quitOpen = true)} />
+<!-- 退出确认可以从设置面板里弹出，叠在它上面，此时设置面板也要 inert -->
+<div inert={quitOpen}>
+  <SettingsPanel bind:open={settingsOpen} onQuit={() => (quitOpen = true)} />
+</div>
 <ConfirmDialog
   open={quitOpen}
   title="退出应用？"
