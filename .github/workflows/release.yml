@@ -66,3 +66,14 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+
+      - name: Upload portable exe (Windows)
+        if: matrix.platform == 'windows-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $asset = "辩论计时器_${version}_x64-portable.exe"
+          Copy-Item "src-tauri/target/release/tauri-app.exe" $asset
+          gh release upload "${{ github.ref_name }}" $asset --clobber
