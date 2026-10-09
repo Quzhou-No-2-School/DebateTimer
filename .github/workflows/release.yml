@@ -23,8 +23,8 @@ jobs:
           - platform: 'ubuntu-22.04'      # Linux
             args: ''
             rust_targets: ''
-          - platform: 'windows-latest'    # Windows
-            args: ''
+          - platform: 'windows-latest'    # Windows（WiX/MSI 不支持非 ASCII 产品名，只出 NSIS）
+            args: '--bundles nsis'
             rust_targets: ''
 
     runs-on: ${{ matrix.platform }}
