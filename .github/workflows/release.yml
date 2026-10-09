@@ -16,12 +16,16 @@ jobs:
         include:
           - platform: 'macos-latest'      # Intel
             args: '--target x86_64-apple-darwin'
+            rust_targets: 'x86_64-apple-darwin'
           - platform: 'macos-latest'      # Apple Silicon
             args: '--target aarch64-apple-darwin'
+            rust_targets: ''
           - platform: 'ubuntu-22.04'      # Linux
             args: ''
+            rust_targets: ''
           - platform: 'windows-latest'    # Windows
             args: ''
+            rust_targets: ''
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -42,6 +46,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.98.0
+          targets: ${{ matrix.rust_targets }}
 
       - uses: Swatinem/rust-cache@v2
         with:
