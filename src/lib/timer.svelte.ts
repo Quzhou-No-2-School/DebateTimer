@@ -25,6 +25,8 @@ class TimerStore {
 
   constructor() {
     this.engine.onTick((s) => {
+      // 切方后旧方的提示（如"时间到"）不再适用于新方，立即清掉
+      if (s.activeSlotId !== this.activeSlotId) this.clearPrompt();
       this.status = s.status;
       this.remainMs = s.remainMs;
       this.overtimeMs = s.overtimeMs;
