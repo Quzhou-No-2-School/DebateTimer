@@ -224,6 +224,8 @@ export class TimerEngine {
   nextSlot(): void {
     if (this.slots.length === 0) return;
     const next = this.slots[(this.activeIndex + 1) % this.slots.length];
+    // 自由辩论：已用尽的一方没有可计的时间，不切过去
+    if (this.stage?.timing.kind === "alternating" && next.remainMs <= 0) return;
     this.setActiveSlot(next.id);
   }
 
@@ -248,14 +250,25 @@ export class TimerEngine {
         slot.remainMs = Math.max(0, remain);
         this.fireMarks(nowWall);
         if (remain <= 0) {
-          slot.remainMs = 0;
-          this.status = "finished";
-          this.finishedWall = nowWall;
-          this.overtimeMs = 0;
-          this.deadline = null;
-          if (!this.finishEmitted) {
-            this.finishEmitted = true;
-            this.emitFinish();
+          // 自由辩论：一方用尽后自动切到另一方并暂停，等操作员继续；
+          // 双方都用尽才算环节结束。
+          const other =
+            this.stage?.timing.kind === "alternating"
+              ? this.slots.find((s) => s.id !== slot.id && s.remainMs > 0)
+              : undefined;
+          if (other) {
+            this.activeIndex = this.slots.indexOf(other);
+            this.status = "paused";
+            this.deadline = null;
+          } else {
+            this.status = "finished";
+            this.finishedWall = nowWall;
+            this.overtimeMs = 0;
+            this.deadline = null;
+            if (!this.finishEmitted) {
+              this.finishEmitted = true;
+              this.emitFinish();
+            }
           }
         }
       }

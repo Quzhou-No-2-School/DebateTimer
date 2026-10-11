@@ -230,6 +230,74 @@ describe("TimerEngine 双边与分桶计时", () => {
   });
 });
 
+describe("TimerEngine 自由辩论一方用尽", () => {
+  function freeStage(): Stage {
+    return {
+      id: "free",
+      name: "自由辩论",
+      side: "neutral",
+      timing: { kind: "alternating", perSideSec: 60, firstSide: "pro" },
+      prompts: [],
+      overtime: "stop",
+    };
+  }
+
+  it("一方用尽后自动切到另一方并暂停，另一方时间不受损", () => {
+    const t = fakeTime();
+    const e = new TimerEngine(t);
+    e.loadStage(freeStage());
+
+    e.start();
+    t.advance(60_000);
+    e.tick();
+
+    expect(e.snapshot().slots.find((s) => s.id === "pro")!.remainMs).toBe(0);
+    expect(e.snapshot().slots.find((s) => s.id === "con")!.remainMs).toBe(60_000);
+    expect(e.snapshot().activeSlotId).toBe("con");
+    expect(e.currentStatus).toBe("paused");
+
+    e.resume(); // 操作员按空格，反方开始
+    t.advance(1000);
+    e.tick();
+    expect(e.snapshot().slots.find((s) => s.id === "con")!.remainMs).toBe(59_000);
+    expect(e.snapshot().slots.find((s) => s.id === "pro")!.remainMs).toBe(0);
+  });
+
+  it("双方都用尽后环节才结束，onFinish 只触发一次", () => {
+    const t = fakeTime();
+    const e = new TimerEngine(t);
+    e.loadStage(freeStage());
+
+    let finishes = 0;
+    e.onFinish(() => finishes++);
+
+    e.start();
+    t.advance(60_000);
+    e.tick();
+    expect(e.currentStatus).toBe("paused"); // 正方用尽，环节未结束
+
+    e.resume();
+    t.advance(60_000);
+    e.tick();
+    expect(e.currentStatus).toBe("finished");
+    expect(finishes).toBe(1);
+  });
+
+  it("一方用尽后切到已用尽一方是 no-op", () => {
+    const t = fakeTime();
+    const e = new TimerEngine(t);
+    e.loadStage(freeStage());
+
+    e.start();
+    t.advance(60_000);
+    e.tick();
+    e.nextSlot();
+
+    expect(e.snapshot().activeSlotId).toBe("con");
+    expect(e.currentStatus).toBe("paused");
+  });
+});
+
 describe("TimerEngine 时钟回拨", () => {
   it("系统时间往回跳时计时不凭空变快", () => {
     const t = fakeTime();
