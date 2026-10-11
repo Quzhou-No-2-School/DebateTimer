@@ -1,6 +1,6 @@
 {
   "name": "debatetimer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "跨平台辩论赛计时器",
   "type": "module",
   "scripts": {
