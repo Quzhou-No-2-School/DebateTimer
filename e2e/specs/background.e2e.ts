@@ -42,12 +42,19 @@ describe("background preference", () => {
     await dialog.$("button=关闭").click();
     await browser.refresh();
     const reopened = await openSettings();
-    expect(await reopened.$("button=背景一").getAttribute("class")).toContain("border-accent");
-    expect(await reopened.$("button=无背景").getAttribute("class")).not.toContain("border-accent");
+    // 激活态是追加 "border-accent text-accent"；btn 常量自带 hover:border-accent，
+    // 裸 substring "border-accent" 对未激活按钮也会命中，必须连 token 一起断言
+    expect(await reopened.$("button=背景一").getAttribute("class")).toContain(
+      "border-accent text-accent",
+    );
+    expect(await reopened.$("button=无背景").getAttribute("class")).not.toContain(
+      "border-accent text-accent",
+    );
   });
 
   it("defaults to no background and switching back persists", async () => {
-    expect(await persistedBackground()).toBe("");
+    // 启动即持久化默认值（onMount → loadStage → config.save，见 +page.svelte:113），故为 "off" 非空键
+    expect(await persistedBackground()).toBe("off");
 
     const dialog = await openSettings();
     await dialog.$("button=背景二").click();
@@ -58,6 +65,8 @@ describe("background preference", () => {
     await dialog.$("button=关闭").click();
     await browser.refresh();
     const reopened = await openSettings();
-    expect(await reopened.$("button=无背景").getAttribute("class")).toContain("border-accent");
+    expect(await reopened.$("button=无背景").getAttribute("class")).toContain(
+      "border-accent text-accent",
+    );
   });
 });
