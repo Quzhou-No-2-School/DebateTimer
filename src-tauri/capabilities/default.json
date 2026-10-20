@@ -8,6 +8,7 @@
     "core:window:allow-close",
     "core:window:allow-set-fullscreen",
     "opener:default",
+    "clipboard-manager:allow-write-text",
     "wdio-webdriver:default",
     "wdio:default"
   ]
