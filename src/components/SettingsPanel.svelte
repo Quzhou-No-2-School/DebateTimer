@@ -4,12 +4,15 @@
   import { timer } from "../lib/timer.svelte";
   import type { FlowTemplate, PromptRule } from "../core/models";
   import { exportTemplate, importTemplate } from "../core/storage";
+  import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { playPrompt, unlockAudio } from "../core/audio";
 
   let { open = $bindable(false), onQuit }: { open?: boolean; onQuit?: () => void } = $props();
 
   let json = $state("");
   let error = $state<string | null>(null);
+  let copied = $state(false);
+  let copyTimer: ReturnType<typeof setTimeout> | null = null;
   let tpl = $derived(config.template);
 
   /** 内置模板不允许原地修改：首次编辑自动另存为自定义 */
@@ -47,8 +50,23 @@
     else if (t.kind === "alternating") t.perSideSec = sec;
   }
 
-  function doExport() {
-    if (tpl) json = exportTemplate(tpl);
+  /**
+   * 导出 = 直接写系统剪贴板。
+   * 不要把完整 JSON 灌进 textarea：在学校旧显卡驱动/旧 WebView2 的机器上，
+   * 程序化渲染大段等宽文本会确定性触发渲染进程崩溃（整窗错误页，重启才恢复）。
+   */
+  async function doExport() {
+    if (!tpl) return;
+    try {
+      await writeText(exportTemplate(tpl));
+      error = null;
+      copied = true;
+      if (copyTimer) clearTimeout(copyTimer);
+      copyTimer = setTimeout(() => (copied = false), 3000);
+    } catch {
+      copied = false;
+      error = "复制到剪贴板失败，请重试";
+    }
   }
 
   function doImport() {
@@ -269,13 +287,16 @@
       <!-- 导入导出 -->
       <section>
         <h3 class="mb-2 text-sm font-medium text-ink-muted">导入 / 导出（JSON，可拷给其他老师）</h3>
-        <div class="flex gap-2">
-          <button class={btn} onclick={doExport}>导出当前流程</button>
+        <div class="flex items-center gap-2">
+          <button class={btn} onclick={doExport}>{copied ? "已复制" : "导出当前流程"}</button>
           <button class={btn} onclick={doImport}>导入</button>
+          {#if copied}
+            <span class="text-xs text-ink-muted">JSON 已复制到剪贴板，可直接粘贴发送</span>
+          {/if}
         </div>
         <textarea
           class="{field} mt-2 h-32 w-full font-mono text-xs"
-          placeholder="导出的 JSON 会显示在这里；也可粘贴 JSON 后点“导入”"
+          placeholder="粘贴其他老师发给你的模板 JSON，然后点“导入”"
           bind:value={json}></textarea>
         {#if error}
           <p class="mt-1 text-xs text-danger">{error}</p>
