@@ -1,6 +1,8 @@
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default().plugin(tauri_plugin_opener::init());
+    let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init());
 
     // 测试专用：在应用进程内起一个 W3C WebDriver HTTP server。
     // 只在 debug 构建存在——release 包绝不能带可被远程驱动的服务。
