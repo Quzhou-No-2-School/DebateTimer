@@ -3,6 +3,7 @@
   import { config } from "../lib/config.svelte";
   import { timer } from "../lib/timer.svelte";
   import type { FlowTemplate, PromptRule } from "../core/models";
+  import { BACKGROUNDS } from "../core/models";
   import { exportTemplate, importTemplate } from "../core/storage";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { playPrompt, unlockAudio } from "../core/audio";
@@ -281,6 +282,52 @@
           >
             试听
           </button>
+        </div>
+      </section>
+
+      <!-- 背景 -->
+      <section class="mb-6">
+        <h3 class="mb-2 text-sm font-medium text-ink-muted">背景</h3>
+        <div class="flex flex-wrap gap-2">
+          <button
+            class="{btn} {config.preferences.background === 'off'
+              ? 'border-accent text-accent'
+              : ''}"
+            onclick={() => {
+              config.preferences.background = "off";
+              config.save();
+            }}
+          >
+            无背景
+          </button>
+          {#each BACKGROUNDS as b (b.id)}
+            <button
+              class="{btn} {config.preferences.background === b.id
+                ? 'border-accent text-accent'
+                : ''}"
+              onclick={() => {
+                config.preferences.background = b.id;
+                config.save();
+              }}
+            >
+              {b.name}
+            </button>
+          {/each}
+        </div>
+        <div class="mt-3 flex items-center gap-3">
+          <span class="text-sm">不透明度</span>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            disabled={config.preferences.background === "off"}
+            bind:value={config.preferences.backgroundOpacity}
+            onchange={() => config.save()}
+          />
+          <span class="text-sm text-ink-muted">
+            {Math.round(config.preferences.backgroundOpacity * 100)}%
+          </span>
         </div>
       </section>
 

@@ -64,10 +64,21 @@ export interface MatchState {
   stageIndex: number;
 }
 
+/** 内置背景图：off = 不使用背景；src 指向 static/ 下的绝对路径 */
+export type BackgroundId = "off" | "bg-1" | "bg-2";
+
+export const BACKGROUNDS: { id: Exclude<BackgroundId, "off">; name: string; src: string }[] = [
+  { id: "bg-1", name: "背景一", src: "/backgrounds/bg-1.jpg" },
+  { id: "bg-2", name: "背景二", src: "/backgrounds/bg-2.jpg" },
+];
+
 export interface Preferences {
   volume: number;
   soundEnabled: boolean;
   promptsEnabled: boolean;
+  background: BackgroundId;
+  /** 背景图不透明度 0–1 */
+  backgroundOpacity: number;
 }
 
 /** 环节总时长（秒）。split 取各桶之和，alternating 取双方之和。 */
@@ -87,6 +98,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   volume: 0.8,
   soundEnabled: true,
   promptsEnabled: true,
+  background: "off",
+  backgroundOpacity: 0.3,
 };
 
 export const DEFAULT_MATCH: MatchState = {
