@@ -50,6 +50,7 @@ describe("flow rail", () => {
     await browser.pause(3500);
 
     const opacity = await $('[data-testid="control-bar"]').getCSSProperty("opacity");
-    expect(opacity.value).toBe("1");
+    // WebKit 返回数字 1，Chromium 返回字符串 "1"，统一转数值比较
+    expect(Number(opacity.value)).toBe(1);
   });
 });
