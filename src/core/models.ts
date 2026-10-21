@@ -69,7 +69,7 @@ export type BackgroundId = "off" | "bg-1" | "bg-2";
 
 export const BACKGROUNDS: { id: Exclude<BackgroundId, "off">; name: string; src: string }[] = [
   { id: "bg-1", name: "背景一", src: "/backgrounds/bg-1.jpg" },
-  { id: "bg-2", name: "背景二", src: "/backgrounds/bg-2.jpg" },
+  { id: "bg-2", name: "背景二", src: "/backgrounds/bg-2.png" },
 ];
 
 export interface Preferences {
