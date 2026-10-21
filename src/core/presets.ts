@@ -167,20 +167,40 @@ const threeSpeakerMiddle: FlowTemplate = {
       timing: single(min(3)),
       prompts: cardPrompts(30),
     }),
-    stage({ id: "m-3", name: "正方二辩驳论", side: "pro", speaker: "二辩", timing: single(min(1)) }),
-    stage({ id: "m-4", name: "反方二辩驳论", side: "con", speaker: "二辩", timing: single(min(1)) }),
-    // 攻辩四轮：攻方 1 分钟（45 秒黄牌＝剩 15 秒）、辩方 1 分 30（1:15 黄牌＝剩 15 秒）
-    // 四轮的攻守归属各校不同，环节名可自行改
-    stage({ id: "m-5", name: "攻辩（一）", side: "neutral", timing: querySplit(min(1), min(1, 30)), prompts: cardPrompts(15) }),
-    stage({ id: "m-6", name: "攻辩（二）", side: "neutral", timing: querySplit(min(1), min(1, 30)), prompts: cardPrompts(15) }),
-    stage({ id: "m-7", name: "攻辩（三）", side: "neutral", timing: querySplit(min(1), min(1, 30)), prompts: cardPrompts(15) }),
-    stage({ id: "m-8", name: "攻辩（四）", side: "neutral", timing: querySplit(min(1), min(1, 30)), prompts: cardPrompts(15) }),
-    stage({ id: "m-9", name: "正方攻辩小结", side: "pro", timing: single(min(1, 30)), prompts: cardPrompts(15) }),
-    stage({ id: "m-10", name: "反方攻辩小结", side: "con", timing: single(min(1, 30)), prompts: cardPrompts(15) }),
-    // 中学赛制多由反方先开始自由辩论
-    stage({ id: "m-11", name: "自由辩论", side: "neutral", timing: freeDebate(min(5), "con") }),
-    stage({ id: "m-12", name: "反方三辩总结", side: "con", speaker: "三辩", timing: single(min(3)), prompts: cardPrompts(30) }),
-    stage({ id: "m-13", name: "正方三辩总结", side: "pro", speaker: "三辩", timing: single(min(3)), prompts: cardPrompts(30) }),
+    stage({
+      id: "m-3",
+      name: "正方二辩驳论",
+      side: "pro",
+      speaker: "二辩",
+      timing: single(min(3)),
+      prompts: cardPrompts(30),
+    }),
+    stage({
+      id: "m-4",
+      name: "反方二辩驳论",
+      side: "con",
+      speaker: "二辩",
+      timing: single(min(3)),
+      prompts: cardPrompts(30),
+    }),
+    // 自由辩论每方 6 分钟，正方先发言
+    stage({ id: "m-5", name: "自由辩论", side: "neutral", timing: freeDebate(min(6), "pro") }),
+    stage({
+      id: "m-6",
+      name: "反方三辩结辩",
+      side: "con",
+      speaker: "三辩",
+      timing: single(min(3)),
+      prompts: cardPrompts(30),
+    }),
+    stage({
+      id: "m-7",
+      name: "正方三辩结辩",
+      side: "pro",
+      speaker: "三辩",
+      timing: single(min(3)),
+      prompts: cardPrompts(30),
+    }),
   ],
 };
 
@@ -215,7 +235,7 @@ const blank: FlowTemplate = {
 
 export const PRESETS: FlowTemplate[] = [fourSpeakerUniv, singapore, threeSpeakerMiddle, oregon, fourSpeakerShort, blank];
 
-export const DEFAULT_TEMPLATE_ID = fourSpeakerUniv.id;
+export const DEFAULT_TEMPLATE_ID = threeSpeakerMiddle.id;
 
 export function findPreset(id: string): FlowTemplate | undefined {
   return PRESETS.find((p) => p.id === id);

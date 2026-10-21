@@ -18,6 +18,27 @@ describe("内置赛制", () => {
     expect(findPreset(DEFAULT_TEMPLATE_ID)).toBeDefined();
   });
 
+  it("默认三人制（中学）流程与现场赛制一致", () => {
+    expect(DEFAULT_TEMPLATE_ID).toBe("three-speaker-middle");
+    const t = findPreset(DEFAULT_TEMPLATE_ID)!;
+    expect(t.stages.map((s) => [s.name, stageTotalSec(s)])).toEqual([
+      ["正方一辩立论", 180],
+      ["反方一辩立论", 180],
+      ["正方二辩驳论", 180],
+      ["反方二辩驳论", 180],
+      ["自由辩论", 720],
+      ["反方三辩结辩", 180],
+      ["正方三辩结辩", 180],
+    ]);
+
+    const free = t.stages[4].timing;
+    expect(free.kind).toBe("alternating");
+    if (free.kind === "alternating") {
+      expect(free.perSideSec).toBe(360);
+      expect(free.firstSide).toBe("pro");
+    }
+  });
+
   it("奥瑞冈每个环节都有三级铃（一声 / 两声 / 三声）", () => {
     const oregon = PRESETS.find((p) => p.id === "oregon-544")!;
     for (const s of oregon.stages) {

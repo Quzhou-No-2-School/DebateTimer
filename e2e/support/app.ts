@@ -1,8 +1,8 @@
 /**
  * e2e 公共操作。
  *
- * 坑 1：控制条会在 3 秒空闲后淡出（src/routes/+page.svelte:30，只改 opacity）。
- * 元素仍在 DOM 里、仍可点击，但视觉断言和截图比对会翻车。
+ * 坑 1：控制条现在常驻（不再 3 秒后淡出），但 wake() 仍要保留：
+ * 首次鼠标 / 按键交互才会解锁 AudioContext，否则现场第一声铃是静音的。
  * wake() 绑在 <svelte:window> 的 mousemove / pointerdown 上，所以交互前先把鼠标移到页面上。
  */
 
