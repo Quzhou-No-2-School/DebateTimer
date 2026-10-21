@@ -21,7 +21,7 @@ describe("flow rail", () => {
     const rail = $('[data-testid="flow-rail"]');
     await expect(rail).toBeDisplayed();
 
-    const items = $$('[data-testid="flow-rail-item"]');
+    const items = await $$('[data-testid="flow-rail-item"]');
     expect(items.length).toBe(7);
 
     expect(await items[0].getAttribute("aria-current")).toBe("step");
@@ -38,7 +38,7 @@ describe("flow rail", () => {
     await browser.keys(["3"]);
     await browser.pause(200);
 
-    const items = $$('[data-testid="flow-rail-item"]');
+    const items = await $$('[data-testid="flow-rail-item"]');
     expect(await items[2].getAttribute("aria-current")).toBe("step");
     expect(await items[0].getAttribute("aria-current")).toBeNull();
     // 已过环节在序号列显示 ✓
