@@ -8,6 +8,7 @@
   import TimerDisplay from "../components/TimerDisplay.svelte";
   import TopicHeader from "../components/TopicHeader.svelte";
   import StageBar from "../components/StageBar.svelte";
+  import FlowRail from "../components/FlowRail.svelte";
   import FreeDebatePanel from "../components/FreeDebatePanel.svelte";
   import ControlBar from "../components/ControlBar.svelte";
   import PromptOverlay from "../components/PromptOverlay.svelte";
@@ -20,8 +21,6 @@
   let settingsOpen = $state(false);
   let quitOpen = $state(false);
   let resetOpen = $state(false);
-  let controlsVisible = $state(true);
-  let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
   // e2e 专用：@wdio/tauri-service 的 browser.tauri.*（窗口状态轮询等）依赖
   // 该前端插件暴露的核心引用；仅在 e2e 构建模式下加载，release 产物不含。
@@ -32,9 +31,6 @@
   function wake() {
     // 浏览器会挂起 AudioContext 直到首次用户交互——不解锁的话现场第一声铃是静音的
     unlockAudio();
-    controlsVisible = true;
-    if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => (controlsVisible = false), 3000);
   }
 
   async function toggleFullscreen() {
@@ -121,8 +117,12 @@
 <svelte:window onkeydown={onKeydown} onpointerdown={wake} onmousemove={wake} />
 
 <!-- 任一浮层打开时背景整体 inert：不可聚焦、不可点击，Tab 不会漏到控制条上 -->
-<main class="flex h-full w-full flex-col" inert={quitOpen || resetOpen || helpOpen || settingsOpen}>
+<main
+  class="relative flex h-full w-full flex-col"
+  inert={quitOpen || resetOpen || helpOpen || settingsOpen}
+>
   <TopicHeader {editing} onEdit={(t) => (editing = t)} />
+  <FlowRail />
 
   <section class="flex flex-1 flex-col items-center justify-center gap-6">
     <PromptOverlay />
@@ -132,7 +132,6 @@
   </section>
 
   <ControlBar
-    visible={controlsVisible}
     onHelp={() => (helpOpen = true)}
     onSettings={() => (settingsOpen = true)}
     onQuit={() => (quitOpen = true)}
