@@ -1,7 +1,7 @@
 <script lang="ts">
   import "../app.css";
   import { config } from "../lib/config.svelte";
-  import { BACKGROUNDS } from "../core/models";
+  import { BACKGROUNDS } from "virtual:backgrounds";
   let { children } = $props();
 
   const bg = $derived(BACKGROUNDS.find((b) => b.id === config.preferences.background));

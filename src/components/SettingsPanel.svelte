@@ -3,7 +3,7 @@
   import { config } from "../lib/config.svelte";
   import { timer } from "../lib/timer.svelte";
   import type { FlowTemplate, PromptRule } from "../core/models";
-  import { BACKGROUNDS } from "../core/models";
+  import { BACKGROUNDS } from "virtual:backgrounds";
   import { exportTemplate, importTemplate } from "../core/storage";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { playPrompt, unlockAudio } from "../core/audio";

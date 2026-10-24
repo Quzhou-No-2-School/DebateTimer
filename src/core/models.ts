@@ -64,13 +64,17 @@ export interface MatchState {
   stageIndex: number;
 }
 
-/** 内置背景图：off = 不使用背景；src 指向 static/ 下的绝对路径 */
-export type BackgroundId = "off" | "bg-1" | "bg-2";
+/** 背景偏好值："off" = 不使用背景，其余为 BackgroundOption.id */
+export type BackgroundId = string;
 
-export const BACKGROUNDS: { id: Exclude<BackgroundId, "off">; name: string; src: string }[] = [
-  { id: "bg-1", name: "背景一", src: "/backgrounds/bg-1.jpg" },
-  { id: "bg-2", name: "背景二", src: "/backgrounds/bg-2.png" },
-];
+export interface BackgroundOption {
+  /** 持久化在 preferences.background 里的值 */
+  id: string;
+  /** 设置面板按钮文案 */
+  name: string;
+  /** 图片 URL，指向 static/ 下的绝对路径 */
+  src: string;
+}
 
 export interface Preferences {
   volume: number;

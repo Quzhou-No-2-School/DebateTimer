@@ -37,7 +37,8 @@ describe("background preference", () => {
   it("selected background persists across reload", async () => {
     const dialog = await openSettings();
     await dialog.$("button=背景一").click();
-    expect(await persistedBackground()).toBe("bg-1");
+    // 背景清单由构建时扫描 static/backgrounds 生成，id = 含扩展名的文件名
+    expect(await persistedBackground()).toBe("背景一.jpg");
 
     await dialog.$("button=关闭").click();
     await browser.refresh();
@@ -58,7 +59,7 @@ describe("background preference", () => {
 
     const dialog = await openSettings();
     await dialog.$("button=背景二").click();
-    expect(await persistedBackground()).toBe("bg-2");
+    expect(await persistedBackground()).toBe("背景二.png");
     await dialog.$("button=无背景").click();
     expect(await persistedBackground()).toBe("off");
 

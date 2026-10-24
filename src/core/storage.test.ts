@@ -48,7 +48,7 @@ describe("偏好持久化", () => {
 
   it("保存后再读取得到等价偏好", () => {
     const state = defaultState();
-    state.preferences.background = "bg-1";
+    state.preferences.background = "背景一.jpg";
     state.preferences.backgroundOpacity = 0.6;
     saveState(state);
     expect(loadState().preferences).toEqual(state.preferences);
