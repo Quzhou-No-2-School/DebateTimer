@@ -76,12 +76,6 @@ export interface BackgroundOption {
   src: string;
 }
 
-/** 可选背景清单（off 之外的所有选项） */
-export const BACKGROUNDS: BackgroundOption[] = [
-  { id: "bg-1", name: "背景一", src: "/backgrounds/bg-1.jpg" },
-  { id: "bg-2", name: "背景二", src: "/backgrounds/bg-2.png" },
-];
-
 export interface Preferences {
   volume: number;
   soundEnabled: boolean;
