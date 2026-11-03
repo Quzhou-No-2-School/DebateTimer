@@ -13,6 +13,13 @@ updates:
     ignore:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "undici"
+      - dependency-name: "minimatch"
+      - dependency-name: "glob"
+      - dependency-name: "smol-toml"
+      - dependency-name: "ip-address"
+      - dependency-name: "serialize-javascript"
+      - dependency-name: "deepmerge"
     groups:
       minor-and-patch:
         applies-to: version-updates
