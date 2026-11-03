@@ -13,6 +13,18 @@ updates:
     ignore:
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # 以下均为 devDependency 传递依赖（wdio e2e / 构建工具链），
+      # 永远不会进入 Tauri 发布产物，安全警报无实际暴露面。
+      # 对应警报已于 2026-11-03 人工 dismiss（not_used）。
+      # 注意：ignore 只抑制 PR，不阻止新警报产生；若依赖链变更使它们
+      # 进入运行时产物，需重新评估并移除对应条目。
+      - dependency-name: "undici"
+      - dependency-name: "minimatch"
+      - dependency-name: "glob"
+      - dependency-name: "smol-toml"
+      - dependency-name: "ip-address"
+      - dependency-name: "serialize-javascript"
+      - dependency-name: "deepmerge"
     groups:
       minor-and-patch:
         applies-to: version-updates
