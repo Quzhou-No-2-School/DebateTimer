@@ -17,16 +17,26 @@ runs:
     - name: Install apt packages
       shell: bash
       run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
+        set -euo pipefail
+        # apt 在托管 runner 上偶发挂死（镜像抖动），曾把一个 job 卡在 apt 步骤 20 分钟。
+        # 用 Acquire::Retries + timeout 兜底，失败后整体重试，最多 3 次。
+        ARGS="-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30"
+        updated=0
+        for attempt in 1 2 3; do
+          if timeout 300 sudo apt-get $ARGS update; then updated=1; break; fi
+          echo "apt-get update failed (attempt ${attempt}), retrying"
+          sleep 10
+        done
+        if [ "$updated" -ne 1 ]; then
+          echo "::error::apt-get update failed after 3 attempts"
+          exit 1
+        fi
+        timeout 600 sudo apt-get $ARGS install -y --no-install-recommends \
           build-essential curl wget file patchelf \
           libwebkit2gtk-4.1-dev \
-          libgtk-3-dev \
           libayatana-appindicator3-dev \
           librsvg2-dev \
-          libssl-dev \
-          libxdo-dev \
-          libsoup-3.0-dev
+          libssl-dev
         if [ "${{ inputs.xvfb }}" = "true" ]; then
-          sudo apt-get install -y --no-install-recommends xvfb
+          timeout 300 sudo apt-get $ARGS install -y --no-install-recommends xvfb
         fi
