@@ -17,13 +17,16 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "fmt:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check",
-    "lint:rust": "cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
-    "check:rust": "cargo check --manifest-path src-tauri/Cargo.toml --all-targets",
-    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "lint:rust": "cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings",
+    "check:rust": "cargo check --manifest-path src-tauri/Cargo.toml --all-targets --locked",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml --locked",
     "verify": "npm run format:check && npm run fmt:rust && npm run test && npm run check && npm run build && npm run lint:rust && npm run test:rust",
     "tauri": "tauri"
   },
   "license": "GPL-3.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "dependencies": {
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-clipboard-manager": "^2.5.0",

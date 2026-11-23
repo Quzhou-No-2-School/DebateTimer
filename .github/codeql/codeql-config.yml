@@ -1,0 +1,10 @@
+name: CodeQL configuration
+
+# 只扫源码与配置，跳过构建产物和体积大的静态资源。
+# actions 语言不支持 path filters，那个矩阵行不传本文件。
+paths-ignore:
+  - build
+  - .svelte-kit
+  - src-tauri/target
+  - src-tauri/gen
+  - static/backgrounds
