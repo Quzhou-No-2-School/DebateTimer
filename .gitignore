@@ -11,6 +11,9 @@ node_modules
 *.log
 npm-debug.log*
 
+# e2e 失败现场（截图 + DOM），CI 用 upload-artifact 收走
+e2e/artifacts/
+
 # 环境变量
 .env
 .env.*
