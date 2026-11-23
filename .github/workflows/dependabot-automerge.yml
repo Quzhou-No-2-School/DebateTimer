@@ -1,68 +1,53 @@
 name: Enable dependency auto-merge
 
-# 人工给 Dependabot PR 贴 `automerge` 标签后，等所有 check 跑绿再 squash 合并。
+# Dependabot PR 自动合并：这里只开启 GitHub 原生 auto-merge，不轮询 check。
+# 合并由仓库 ruleset `protect-main` 把关：required check 是 `Gate · all checks`，
+# 只有 gate 变绿后 GitHub 才会真正 squash 合并。
 #
-# 为什么不用 pull_request_target + 直接 `gh pr merge --auto`：
-# 本仓库目前没有 branch protection，`--auto` 在没有 required checks 时会立即合并，
-# 等于跳过 CI。这里显式轮询 statusCheckRollup，逻辑不依赖仓库设置。
+# 参考：not-exist/SuperUp366 的 dependabot-automerge.yml。
 #
-# 安全边界：本 workflow 不 checkout PR 内容、不执行 PR 里的代码，只调用 gh API。
+# 安全边界：pull_request_target 持有写 token，本 workflow 不 checkout PR 内容、
+# 不执行 PR 里的代码，只调用 gh API。不要在这里加 actions/checkout。
+#
+# 前置条件：仓库开启 Allow auto-merge，且 main 的 ruleset 要求 `Gate · all checks`；
+# 否则 `--auto` 会在没有 required checks 时立即合并，等于跳过 CI。
 
 on:
   pull_request_target:
-    types: [labeled]
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - ready_for_review
 
 permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: dependabot-automerge-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
 jobs:
   enable-auto-merge:
-    name: Squash merge when green
+    name: Enable auto-merge
     if: >-
       github.event.pull_request.user.login == 'dependabot[bot]' &&
-      github.event.label.name == 'automerge'
+      contains(github.event.pull_request.labels.*.name, 'dependencies') &&
+      github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 5
     steps:
-      - name: Wait for checks to pass
+      - name: Enable auto-merge
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
           set -euo pipefail
-          # 先等 check 出现（事件到达时 CI 可能还没注册 check）。
-          for _ in $(seq 1 90); do
-            json="$(gh pr view "$PR_URL" --json statusCheckRollup)"
-            [ "$(jq '.statusCheckRollup | length' <<<"$json")" -gt 0 ] && break
-            sleep 10
-          done
-
-          # 每 10s 轮询一次，最多 80 分钟；任一检查失败立即退出。
-          for _ in $(seq 1 480); do
-            json="$(gh pr view "$PR_URL" --json statusCheckRollup)"
-            total="$(jq '.statusCheckRollup | length' <<<"$json")"
-            [ "$total" -eq 0 ] && { echo "::error::PR 没有任何检查"; exit 1; }
-
-            failed="$(jq '[.statusCheckRollup[] | select(.conclusion == "FAILURE" or .conclusion == "TIMED_OUT" or .conclusion == "CANCELLED" or .conclusion == "ACTION_REQUIRED" or .conclusion == "STARTUP_FAILURE")] | length' <<<"$json")"
-            if [ "$failed" -gt 0 ]; then
-              echo "::error::有 ${failed} 个检查未通过，放弃合并"
-              exit 1
-            fi
-
-            pending="$(jq '[.statusCheckRollup[] | select(.status != "COMPLETED")] | length' <<<"$json")"
-            if [ "$pending" -eq 0 ]; then
-              echo "全部 ${total} 个检查通过"
-              exit 0
-            fi
-            sleep 10
-          done
-
-          echo "::error::等待检查超时"
-          exit 1
-
-      - name: Squash merge
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
-        run: gh pr merge "$PR_URL" --squash --delete-branch
+          # synchronize 会重复触发；已开启 auto-merge 时直接跳过，保证幂等。
+          if [ "$(gh pr view "$PR_URL" --json autoMergeRequest --jq '.autoMergeRequest != null')" = "true" ]; then
+            echo "auto-merge 已开启，跳过"
+            exit 0
+          fi
+          gh pr merge "$PR_URL" --auto --squash
