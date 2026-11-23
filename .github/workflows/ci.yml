@@ -1,8 +1,9 @@
 name: CI
 
-# 唯一 PR 门禁。质量门禁跑在最前面，下游按需并行：
-#   quality → test / e2e / build / audit → package
-# quality 失败时其余 job 全部 skipped，只红一个 check（而不是每个平台各红一次）。
+# 唯一 PR 门禁。质量门禁跑在最前面，下游按需并行，最后汇总到 gate：
+#   quality → test / e2e / build / audit → gate → package
+# quality 失败时其余 job 全部 skipped，只红一个 check（而不是每个平台各红一次）；
+# package 只依赖 gate，不再直接依赖各个测试 job。
 #
 # package 在 main、手动触发、或 PR 带 `ci:package` 标签时运行；默认 PR 不打包，
 # 保持反馈时间，需要安装包时给 PR 贴标签即可。
@@ -229,13 +230,34 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/audit.yml
 
+  # 汇总门禁：所有测试/审计 job 的出口。package 只依赖这一个 job，
+  # branch protection 也只需要勾这一个 check——以后增删平台不改 required 列表。
+  gate:
+    name: Gate · all checks
+    needs: [quality, test, e2e, build, audit]
+    # 即使上游失败也要运行，才能把失败原因汇总成一条清晰的 gate 报错。
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every upstream job to succeed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          echo "$NEEDS"
+          failed="$(jq -r '[to_entries[] | select(.value.result != "success") | "\(.key)=\(.value.result)"] | join(", ")' <<<"$NEEDS")"
+          if [ -n "$failed" ]; then
+            echo "::error::required jobs did not succeed: $failed"
+            exit 1
+          fi
+
   package:
     name: Package installers
-    needs: [test, e2e, build, audit]
+    needs: gate
     if: >-
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci:package'))
+      github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
     uses: ./.github/workflows/package.yml

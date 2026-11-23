@@ -1,7 +1,7 @@
 name: Release
 
 # 只在 v* tag 上发布，产物由 package.yml 构建（与 main / PR 同一条路径）。
-# 流程：校验版本号 → 四行矩阵打包 → 汇总 artifact + 校验和 → 建 draft release。
+# 流程：校验版本号 → 确认同 commit 的 CI 已绿 → 四行矩阵打包 → 汇总 artifact + 校验和 → 建 draft release。
 # 发布前 draft 需人工确认；重跑本 workflow 不会重复建 release（softprops 覆盖同名）。
 
 on:
@@ -41,9 +41,34 @@ jobs:
             exit 1
           fi
 
+  # 发布门禁（HHHOJ 的 test-gate 模式）：tag 可以由任何有权限的人打，
+  # 但只有同 commit 的 CI 已经全绿才允许打包发布。
+  # 直接查 Actions API，不重复跑一遍测试。
+  gate:
+    name: Gate · CI green for commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Require a successful CI run for this commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          runs="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&status=completed&per_page=100" \
+            --jq '[.workflow_runs[] | select(.conclusion == "success")] | length')"
+          if [ "$runs" -eq 0 ]; then
+            echo "::error::no successful CI run for ${GITHUB_SHA}; wait for CI to pass before tagging"
+            exit 1
+          fi
+          echo "found ${runs} successful CI run(s) for ${GITHUB_SHA}"
+
   package:
     name: Build installers
-    needs: verify-version
+    needs: [verify-version, gate]
     permissions:
       contents: read
     uses: ./.github/workflows/package.yml
