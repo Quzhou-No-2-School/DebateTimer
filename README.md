@@ -83,16 +83,26 @@ xvfb-run -a npm run test:e2e
 
 ### CI 与平台覆盖
 
-CI 分两条：`quality` 是 Linux 单机快速道（格式 + 类型 + 单测），`platform` 是平台矩阵（编译检查 + e2e）。
+CI 的 PR 门禁只有一个入口 `ci.yml`，按「质量门禁 → 下游并行」组织：
 
-| CI runner        | 对应的真实环境                     | 跑什么     |
-| ---------------- | ---------------------------------- | ---------- |
-| `ubuntu-24.04`   | Ubuntu 24.04                       | 编译 + e2e |
-| `windows-2022`   | Windows 10 世代内核（Server 2022） | 编译 + e2e |
-| `windows-2025`   | Windows 11 世代内核（Server 2025） | 编译       |
-| `macos-15`       | macOS 15（arm64）                  | 编译 + e2e |
-| `windows-11-arm` | 真 Windows 11（arm64）             | 编译 + e2e |
-| `macos-26`       | macOS 26（非阻塞探测）             | 编译 + e2e |
+| workflow      | 触发                  | 作用                                                                      |
+| ------------- | --------------------- | ------------------------------------------------------------------------- |
+| `ci.yml`      | PR / push main / 手动 | PR 门禁：`quality` → `test`、`e2e`、`build`、`audit` → `gate` → `package` |
+| `package.yml` | 被 ci / release 调用  | 四行矩阵打包（deb+AppImage / NSIS / dmg arm64 / dmg x64），上传 artifact  |
+| `audit.yml`   | 被 ci 调用 + 每周一   | cargo-deny、`npm audit --omit=dev`、PR 依赖审查                           |
+| `release.yml` | `v*` tag              | 校验版本号 → 确认同 commit 的 CI 已绿 → 复用 package → 校验和 → draft     |
+| `codeql.yml`  | push/PR main + 每周一 | rust / javascript-typescript / actions 扫描                               |
+
+`quality` 跑格式、类型检查、前端构建、rustfmt、clippy；任何一步失败，下游 job 显示 skipped，只亮一个红灯，不会每个平台各红一次。`test` / `e2e` / `build` / `audit` 全部汇入一个 `gate` job，`package` 只依赖 `gate`；branch protection 也只需要勾这一个 check。发布时 `release.yml` 另有同款 gate，直接查 Actions API 确认同 commit 的 CI 已绿，不重复跑测试。`build` 在 Linux 上做一次 release 档位编译（不打包）；`package` 在 main、手动触发和 tag 发布时运行。e2e 失败时会把截图和页面 DOM 传到 run 的 Artifacts。
+
+| CI runner        | 对应的真实环境                     | 跑什么                          |
+| ---------------- | ---------------------------------- | ------------------------------- |
+| `ubuntu-24.04`   | Ubuntu 24.04                       | 单测 + e2e                      |
+| `windows-2022`   | Windows 10 世代内核（Server 2022） | 单测 + e2e                      |
+| `macos-15`       | macOS 15（arm64）                  | e2e                             |
+| `windows-2025`   | Windows 11 世代内核（Server 2025） | 探测 e2e（main / 手动，非阻塞） |
+| `windows-11-arm` | 真 Windows 11（arm64）             | e2e                             |
+| `macos-26`       | macOS 26                           | 探测 e2e（main / 手动，非阻塞） |
 
 **已知缺口（重要）**：GitHub 托管 runner 不提供 Windows 10 / 11 的**消费者版本**镜像，除 `windows-11-arm`（字面 Win11 客户端，但 arm64）外，上表 Windows 行均为 Server SKU。因此以下项目仍需在真机上手工验收：
 

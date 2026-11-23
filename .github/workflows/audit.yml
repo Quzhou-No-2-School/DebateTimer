@@ -1,0 +1,76 @@
+name: Dependency audit
+
+# 依赖审计：三个维度，互不阻塞。
+#   cargo-deny       Rust 依赖的 advisory / 许可证 / 来源 / 重复版本
+#   npm audit        只查生产依赖（devDependencies 不进入安装包）
+#   dependency-review 只看 PR 新增的依赖及其许可证/漏洞
+#
+# 由 ci.yml 以 workflow_call 调用（PR 上生效）；每周一定时重跑，
+# 以便在"没有代码改动"时也能发现新披露的 CVE。
+
+on:
+  workflow_call:
+  schedule:
+    # Mondays 03:00 UTC: catch advisories published after the last push.
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-deny:
+    name: cargo-deny
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # 规则在仓库根的 deny.toml：许可证白名单、git 来源白名单（wdio 插件）。
+      # 不编译项目，只读 Cargo.lock 与依赖元数据。
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          command: check advisories bans sources licenses
+          manifest-path: src-tauri/Cargo.toml
+          arguments: --locked
+
+  npm-audit:
+    name: npm audit (production)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci --no-audit --no-fund
+
+      # 只查生产依赖：Tauri 应用运行时只有 3 个 @tauri-apps 包。
+      # devDependencies 的告警交给 Dependabot，不在此处阻断（历史上全是 dev-only 传递依赖）。
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high

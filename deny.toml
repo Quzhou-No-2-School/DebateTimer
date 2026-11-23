@@ -1,0 +1,51 @@
+# cargo-deny 规则：依赖审计（CI 的 audit workflow 使用）。
+#
+# 许可证白名单按 `cargo metadata` 的实际取值整理，主要是 MIT / Apache-2.0 及其
+# SPDX 组合，另有 MPL-2.0（cssparser、selectors）、Unicode-3.0（icu_*）、
+# BSL-1.0（clipboard-win、error-code）等宽松许可证。
+# 新增依赖若报未授权许可证，先确认条款再往 allow 里加，不要直接放宽。
+
+[advisories]
+yanked = "warn"
+# 只对直接依赖报「无人维护」；zbus / zvariant / proc-macro-error 这些是 Tauri
+# 依赖图的传递依赖，我们既不能升级也不能替换，逐条 ignore 只会变成维护负担。
+# 显式写死，避免不同 cargo-deny 版本的默认值不同导致 CI 时红时绿。
+unmaintained = "workspace"
+
+[licenses]
+confidence-threshold = 0.93
+# 白名单是按多平台依赖图整理的，Linux 跑不到某些 crate 时不必为此报警。
+unused-allowed-license = "allow"
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "ISC",
+  "MIT",
+  "MIT-0",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+
+# 本仓库自身是 GPL-3.0，不在上面的宽松白名单里，单独放行。
+[[licenses.exceptions]]
+name = "tauri-app"
+allow = ["GPL-3.0-only"]
+
+[bans]
+# Tauri 的依赖图里同一 crate 多版本很常见，这里不据此阻断。
+multiple-versions = "allow"
+wildcards = "allow"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+# e2e 用的 WebDriver 插件钉在 git rev 上（见 src-tauri/Cargo.toml 的注释）。
+allow-git = ["https://github.com/webdriverio/desktop-mobile"]

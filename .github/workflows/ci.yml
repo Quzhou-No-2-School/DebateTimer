@@ -1,0 +1,311 @@
+name: CI
+
+# 唯一 PR 门禁。质量门禁跑在最前面，下游按需并行，最后汇总到 gate：
+#   quality → test / e2e / build / audit → gate → package
+# quality 失败时其余 job 全部 skipped，只红一个 check（而不是每个平台各红一次）；
+# package 只依赖 gate，不再直接依赖各个测试 job。
+#
+# package 只在 main 和手动触发时运行；PR 不打包，保持反馈时间。
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  quality:
+    name: Quality · format, types, lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/linux-deps
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci --no-audit --no-fund
+
+      # 最便宜的门禁放最前面：格式问题不应该等 5 分钟才报。
+      - name: Format (Prettier)
+        run: npm run format:check
+
+      - name: Typecheck (svelte-check)
+        run: npm run check
+
+      # 必须早于所有 Rust 命令：tauri-codegen 展开 generate_context! 时
+      # 会检查 tauri.conf.json 的 frontendDist（../build）是否存在，缺失直接 panic。
+      - name: Build frontend
+        run: npm run build
+
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+        with:
+          # rust-toolchain.toml 是本地唯一事实来源；这里显式写同一个版本，
+          # 因为该 action 不会读仓库里的 toolchain 文件。
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Format (rustfmt)
+        run: npm run fmt:rust
+
+      - name: Lint (clippy)
+        run: npm run lint:rust
+
+  test:
+    name: Test · ${{ matrix.os }}
+    needs: quality
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/linux-deps
+        if: runner.os == 'Linux'
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: npm ci --no-audit --no-fund
+
+      # cargo test 同样需要 build/：tauri::generate_context! 在编译期展开。
+      - name: Build frontend
+        run: npm run build
+
+      - name: Unit tests (Vitest)
+        run: npm test
+
+      - name: Unit tests (cargo)
+        run: npm run test:rust
+
+  e2e:
+    name: E2E · ${{ matrix.os }}
+    needs: quality
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 三平台同等覆盖（项目约束）。windows-11-arm 是目前唯一字面 Windows 11，
+          # 虽然耗时最长，仍保持阻塞。
+          - os: ubuntu-24.04
+          - os: windows-2022
+          - os: macos-15
+          - os: windows-11-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/linux-deps
+        if: runner.os == 'Linux'
+        with:
+          xvfb: "true"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: npm ci --no-audit --no-fund
+
+      # e2e 驱动 debug 二进制（WebDriver 插件按 debug_assertions 门控），不打包。
+      - name: Build e2e target
+        run: npm run test:e2e:build
+
+      - name: E2E (Linux, virtual display)
+        if: runner.os == 'Linux'
+        # 显式 1280x800x24：窗口按此尺寸全屏，避免依赖 xvfb-run 默认屏幕。
+        run: xvfb-run -a --server-args="-screen 0 1280x800x24" npm run test:e2e
+
+      - name: E2E (Windows / macOS)
+        if: runner.os != 'Linux'
+        run: npm run test:e2e
+
+      # 失败现场（截图 + DOM）由 e2e/wdio.conf.ts 的 afterTest 钩子写入。
+      - name: Upload e2e artifacts
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-artifacts-${{ matrix.os }}-${{ github.sha }}
+          path: e2e/artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # release 档位编译只在 Linux 上验证一次：macOS / Windows 的 release 差异
+  # 交给 package（main / tag）兜底。这个 job 与 e2e 并行，不拉长 PR 关键路径。
+  build:
+    name: Build · release profile
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/linux-deps
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+        with:
+          toolchain: 1.98.0
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: npm ci --no-audit --no-fund
+
+      # --no-bundle 跳过安装包打包：这里只证明 release profile 能编过。
+      # 真正的 msi / dmg / deb 由 package.yml 产出。
+      - name: Build (release profile, no bundling)
+        run: npm run tauri -- build --no-bundle
+
+  audit:
+    name: Dependency audit
+    needs: quality
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/audit.yml
+
+  # 汇总门禁：所有测试/审计 job 的出口。package 只依赖这一个 job，
+  # branch protection 也只需要勾这一个 check——以后增删平台不改 required 列表。
+  gate:
+    name: Gate · all checks
+    needs: [quality, test, e2e, build, audit]
+    # 即使上游失败也要运行，才能把失败原因汇总成一条清晰的 gate 报错。
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every upstream job to succeed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          echo "$NEEDS"
+          failed="$(jq -r '[to_entries[] | select(.value.result != "success") | "\(.key)=\(.value.result)"] | join(", ")' <<<"$NEEDS")"
+          if [ -n "$failed" ]; then
+            echo "::error::required jobs did not succeed: $failed"
+            exit 1
+          fi
+
+  package:
+    name: Package installers
+    needs: gate
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/package.yml
+    with:
+      artifact_prefix: DebateTimer
+      upload_artifacts: true
+
+  # 非阻塞探测：只在 main 或手动触发时跑，跑绿若干次后再提升为阻塞行。
+  # job 级 if 在矩阵展开前求值，所以必须单独成 job，不能塞进 e2e 矩阵。
+  probe:
+    name: Probe · windows-2025 / macos-26
+    needs: quality
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    continue-on-error: true
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2025, macos-26]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+        with:
+          toolchain: 1.98.0
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install frontend dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build e2e target
+        run: npm run test:e2e:build
+
+      - name: E2E
+        run: npm run test:e2e
+
+      - name: Upload e2e artifacts
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-artifacts-probe-${{ matrix.os }}-${{ github.sha }}
+          path: e2e/artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
