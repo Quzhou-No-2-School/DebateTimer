@@ -7,6 +7,10 @@
 
 [advisories]
 yanked = "warn"
+# 只对直接依赖报「无人维护」；zbus / zvariant / proc-macro-error 这些是 Tauri
+# 依赖图的传递依赖，我们既不能升级也不能替换，逐条 ignore 只会变成维护负担。
+# 显式写死，避免不同 cargo-deny 版本的默认值不同导致 CI 时红时绿。
+unmaintained = "workspace"
 
 [licenses]
 confidence-threshold = 0.93

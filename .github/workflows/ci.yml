@@ -246,7 +246,7 @@ jobs:
   # 非阻塞探测：只在 main 或手动触发时跑，跑绿若干次后再提升为阻塞行。
   # job 级 if 在矩阵展开前求值，所以必须单独成 job，不能塞进 e2e 矩阵。
   probe:
-    name: Probe · ${{ matrix.os }}
+    name: Probe · windows-2025 / macos-26
     needs: quality
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     continue-on-error: true
